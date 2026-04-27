@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useCart } from '../context/CartContext'
 
 type Product = {
   name: string
@@ -40,8 +41,28 @@ function formatPrice(price: number) {
   return `$${price.toLocaleString('es-CL')}`
 }
 
+function CartIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-6 w-6"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6h11M10 19a1 1 0 100 2 1 1 0 000-2zm7 0a1 1 0 100 2 1 1 0 000-2z"
+      />
+    </svg>
+  )
+}
+
 export default function Catalog() {
   const [activeCategory, setActiveCategory] = useState('Todos')
+  const { addItem, totalItems, setIsOpen } = useCart()
 
   const filtered =
     activeCategory === 'Todos'
@@ -59,10 +80,26 @@ export default function Catalog() {
   return (
     <div className="min-h-screen bg-zinc-50">
       {/* Header */}
-      <header className="bg-[#CC3311] text-white py-8 px-6 shadow-md">
-        <div className="max-w-5xl mx-auto">
-          <h1 className="text-3xl font-bold tracking-tight">TMT Tienda</h1>
-          <p className="mt-1 text-red-100 text-sm">Productos artesanales chilenos</p>
+      <header className="bg-[#CC3311] text-white py-6 px-6 shadow-md sticky top-0 z-30">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">TMT Tienda</h1>
+            <p className="mt-0.5 text-red-100 text-sm">Productos artesanales chilenos</p>
+          </div>
+
+          {/* Botón carrito */}
+          <button
+            onClick={() => setIsOpen(true)}
+            className="relative p-2 rounded-full hover:bg-white/20 transition-colors"
+            aria-label="Abrir carrito"
+          >
+            <CartIcon />
+            {totalItems > 0 && (
+              <span className="absolute -top-1 -right-1 bg-white text-[#CC3311] text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                {totalItems > 99 ? '99+' : totalItems}
+              </span>
+            )}
+          </button>
         </div>
       </header>
 
@@ -99,9 +136,17 @@ export default function Catalog() {
                   >
                     <span className="text-base font-medium text-zinc-800">{product.name}</span>
                     <span className="text-sm text-zinc-500">{product.variant}</span>
-                    <span className="mt-2 text-xl font-bold text-[#CC3311]">
-                      {formatPrice(product.price)}
-                    </span>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <span className="text-xl font-bold text-[#CC3311]">
+                        {formatPrice(product.price)}
+                      </span>
+                      <button
+                        onClick={() => addItem(product)}
+                        className="shrink-0 px-3 py-1.5 rounded-lg bg-[#CC3311] text-white text-sm font-medium hover:bg-[#aa2a0d] active:scale-95 transition-all"
+                      >
+                        Agregar
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
