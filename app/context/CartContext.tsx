@@ -25,7 +25,7 @@ export const SHIPPING_COST = 2000
 
 type CartContextType = {
   items: CartItem[]
-  addItem: (product: Product) => void
+  addItem: (product: Product, quantity?: number) => void
   updateQuantity: (name: string, variant: string, delta: number) => void
   totalItems: number
   totalPrice: number
@@ -54,7 +54,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [confirmationOpen, setConfirmationOpen] = useState(false)
   const [customerData, setCustomerData] = useState<CustomerData | null>(null)
 
-  const addItem = (product: Product) => {
+  const addItem = (product: Product, quantity = 1) => {
     setItems((prev) => {
       const existing = prev.find(
         (i) => i.name === product.name && i.variant === product.variant
@@ -62,11 +62,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (existing) {
         return prev.map((i) =>
           i.name === product.name && i.variant === product.variant
-            ? { ...i, quantity: i.quantity + 1 }
+            ? { ...i, quantity: i.quantity + quantity }
             : i
         )
       }
-      return [...prev, { ...product, quantity: 1 }]
+      return [...prev, { ...product, quantity }]
     })
   }
 
