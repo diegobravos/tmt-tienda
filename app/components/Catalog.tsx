@@ -15,14 +15,14 @@ type Product = {
 const products: Product[] = [
   // Tomates
   { name: 'Tomates Mix grandes',  variant: '1 kg',    price: 5000,  category: 'Tomates',           image: '/images/tomate.jpg' },
-  { name: 'Tomates Mix cherry',   variant: '1 kg',    price: 5500,  category: 'Tomates',           image: '/images/Cherry_grandes.jpg' },
+  { name: 'Tomates Mix cherry',   variant: '1 kg',    price: 5500,  category: 'Tomates',           image: '/images/Cosecha.jpg' },
   { name: 'Tomates Mix cherry',   variant: '½ kg',    price: 3500,  category: 'Tomates',           image: '/images/cherrys_pequeños.jpg' },
   // Conservas
   { name: 'Salsa TMT',            variant: '1 lt',    price: 10000, category: 'Conservas',         image: '/images/salsa.jpg' },
   { name: 'Salsa TMT',            variant: '460 ml',  price: 5000,  category: 'Conservas',         image: '/images/salsa.jpg' },
   { name: 'Salsa TMT',            variant: '370 ml',  price: 4000,  category: 'Conservas',         image: '/images/salsa.jpg' },
   { name: 'Asados TMT',           variant: '460 ml',  price: 6000,  category: 'Conservas',         image: '/images/Cosecha.jpg' },
-  { name: 'Mermelada TMT',        variant: '460 ml',  price: 7500,  category: 'Conservas',         image: null },
+  { name: 'Mermelada TMT',        variant: '460 ml',  price: 7500,  category: 'Conservas',         image: '/images/tomate.jpg' },
   { name: 'Mermelada TMT',        variant: '320 ml',  price: 5500,  category: 'Conservas',         image: null },
   { name: 'Mermelada TMT con ají',variant: '460 ml',  price: 8500,  category: 'Conservas',         image: null },
   // Frescos
@@ -33,7 +33,7 @@ const products: Product[] = [
   // Aceites y especias
   { name: 'Aceite oliva mediterráneo', variant: '1 lt',   price: 11000, category: 'Aceites y especias', image: '/images/Aceite_mediterraneo.jpg' },
   { name: 'Oliu Premium',              variant: '1 lt',   price: 13500, category: 'Aceites y especias', image: '/images/Aceite_oliu.jpg' },
-  { name: 'Merkén cacho cabra',        variant: 'Unidad', price: 3500,  category: 'Aceites y especias', image: '/images/merken.jpg' },
+  { name: 'Merkén cacho cabra',        variant: 'Unidad', price: 3500,  category: 'Aceites y especias', image: '/images/merken_solo.jpg' },
   { name: 'Merkén cacho cabra',        variant: 'Pack 3', price: 10000, category: 'Aceites y especias', image: '/images/merken.jpg' },
 ]
 
