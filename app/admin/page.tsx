@@ -85,17 +85,10 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
   async function updateStatus(orderId: string, newStatus: string) {
     setUpdating(prev => new Set(prev).add(orderId))
-    const { error, count } = await supabase
+    await supabase
       .from('orders')
       .update({ status: newStatus })
       .eq('id', orderId)
-      .select()
-
-    if (error) {
-      alert('Error Supabase: ' + JSON.stringify(error))
-    } else if (!count || count === 0) {
-      alert('Sin efecto: 0 filas actualizadas. Probablemente RLS está bloqueando el UPDATE con la anon key.')
-    }
 
     await fetchOrders()
     setUpdating(prev => { const s = new Set(prev); s.delete(orderId); return s })
