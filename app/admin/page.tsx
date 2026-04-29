@@ -22,7 +22,7 @@ type Order = {
   status: 'pendiente' | 'pagado' | 'despachado'
   created_at: string
   customer_id: string
-  customers: { name: string; phone: string; address: string }
+  customers: { name: string; phone: string; address: string } | { name: string; phone: string; address: string }[]
   order_items: OrderItem[]
 }
 
@@ -42,6 +42,10 @@ const STATUS_CONFIG: Record<string, { label: string; badge: string }> = {
 const STATUS_FILTERS = ['todos', 'pendiente', 'pagado', 'despachado'] as const
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getCustomer(customers: Order['customers']) {
+  return Array.isArray(customers) ? customers[0] : customers
+}
 
 function formatPrice(n: number) {
   return `$${n.toLocaleString('es-CL')}`
@@ -105,7 +109,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
   function handleOptimizeRoute() {
     const waypoints = filtered
-      .map(o => o.customers?.address)
+      .map(o => getCustomer(o.customers)?.address)
       .filter(Boolean)
       .map(a => encodeURIComponent(a))
       .join('|')
@@ -207,7 +211,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
         {/* Tarjetas de pedidos */}
         {!loading && filtered.map(order => {
-          const customer = order.customers
+          const customer = getCustomer(order.customers)
           const isUpdating = updating.has(order.id)
           const status = STATUS_CONFIG[order.status]
           const itemsTotal = order.order_items.reduce((s, i) => s + i.price * i.quantity, 0)
