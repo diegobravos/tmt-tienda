@@ -89,6 +89,7 @@ export default function Confirmation() {
 
   async function handleConfirm() {
     // Guardar en Supabase de forma silenciosa — siempre abre WhatsApp al final
+    if (!customerData) return
     try {
       const datos = { customerData, items, totalPrice, shippingCost }
       console.log('Guardando pedido...', datos)
