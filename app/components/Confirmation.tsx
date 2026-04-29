@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useCart, FREE_SHIPPING_THRESHOLD } from '../context/CartContext'
+import { supabase } from '../lib/supabase'
 
 function formatPrice(price: number) {
   return `$${price.toLocaleString('es-CL')}`
@@ -86,7 +87,64 @@ export default function Confirmation() {
   const orderMessage = buildOrderMessage(items, totalPrice, shippingCost, totalWithShipping, customerData)
   const orderUrl = `https://wa.me/56994390886?text=${encodeURIComponent(orderMessage)}`
 
-  function handleConfirm() {
+  async function handleConfirm() {
+    // Guardar en Supabase de forma silenciosa — siempre abre WhatsApp al final
+    try {
+      const datos = { customerData, items, totalPrice, shippingCost }
+      console.log('Guardando pedido...', datos)
+
+      // 1. Buscar o crear cliente por teléfono
+      const { data: existing } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('phone', customerData.phone)
+        .maybeSingle()
+
+      let customerId: string
+
+      if (existing) {
+        customerId = existing.id
+      } else {
+        const { data: created } = await supabase
+          .from('customers')
+          .insert({ name: customerData.name, phone: customerData.phone, address: customerData.address })
+          .select('id')
+          .single()
+        customerId = created!.id
+      }
+
+      // 2. Crear pedido
+      const { data: order } = await supabase
+        .from('orders')
+        .insert({
+          customer_id: customerId,
+          total: totalPrice,
+          shipping_cost: shippingCost,
+          delivery_date: customerData.date,
+          delivery_time: customerData.time,
+          status: 'pendiente',
+        })
+        .select('id')
+        .single()
+
+      // 3. Crear items del pedido
+      if (order) {
+        await supabase.from('order_items').insert(
+          items.map((item) => ({
+            order_id: order.id,
+            product_name: item.name,
+            variant: item.variant,
+            quantity: item.quantity,
+            price: item.price,
+          }))
+        )
+      }
+      console.log('Pedido guardado:', order)
+    } catch (error) {
+      console.log('Error al guardar:', error)
+      // Error silencioso — no bloquea el flujo del cliente
+    }
+
     window.open(orderUrl, '_blank', 'noopener,noreferrer')
     setOrderSent(true)
   }
