@@ -1,96 +1,38 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useCart } from '../context/CartContext'
+import { supabase } from '../lib/supabase'
 
 type Product = {
+  id: string
   name: string
   variant: string
   price: number
   category: string
   image: string | null
   description?: string
+  active: boolean
+  stock: number | null
 }
 
-const products: Product[] = [
-  // Tomates
-  {
-    name: 'Tomates Mix grandes', variant: '1 kg', price: 5000, category: 'Tomates', image: '/images/tomate.jpg',
-    description: 'El tomate de verdad, como debe ser. Mezcla de variedades de tomates seleccionados a mano en el campo, con la madurez justa para que lleguen a tu mesa en su punto perfecto. De pulpa firme, sabor intenso y variados colores. Ideales para preparaciones caseras, ensaladas o simplemente con un chorro de aceite de oliva y sal.',
-  },
-  {
-    name: 'Tomates Mix cherry', variant: '1 kg', price: 5500, category: 'Tomates', image: '/images/Cosecha.jpg',
-    description: 'Pequeños, dulces, adictivos. Una mezcla de variedades cherry cosechados a mano en el campo, para que lleguen a tu mesa en su momento exacto de sabor. Perfectos para ensaladas coloridas, tablas de quesos o comerlos directo del paquete. Cuando los pruebes, no vas a querer volver a los del supermercado.',
-  },
-  {
-    name: 'Tomates Mix cherry', variant: '½ kg', price: 3500, category: 'Tomates', image: '/images/cherrys_pequeños.jpg',
-    description: 'Pequeños, dulces, adictivos. Una mezcla de variedades cherry cosechados a mano en el campo, para que lleguen a tu mesa en su momento exacto de sabor. Perfectos para ensaladas coloridas, tablas de quesos o comerlos directo del paquete. Cuando los pruebes, no vas a querer volver a los del supermercado.',
-  },
-  // Conservas
-  {
-    name: 'Salsa TMT', variant: '1 lt', price: 10000, category: 'Conservas', image: '/images/salsa.jpg',
-    description: 'La salsa que hacía la abuela, ahora en f. Elaborada con tomates San Marzano frescos de temporada. Cocinados lentamente con respeto, paciencia y cariño. Sin conservantes ni colorantes. Una salsa honesta que transforma cualquier pasta, pizza o guiso en algo especial. Disponible en tres tamaños para que nunca te falte.',
-  },
-  {
-    name: 'Salsa TMT', variant: '460 ml', price: 5000, category: 'Conservas', image: '/images/salsa.jpg',
-    description: 'La salsa que hacía la abuela, ahora en f. Elaborada con tomates San Marzano frescos de temporada. Cocinados lentamente con respeto, paciencia y cariño. Sin conservantes ni colorantes. Una salsa honesta que transforma cualquier pasta, pizza o guiso en algo especial. Disponible en tres tamaños para que nunca te falte.',
-  },
-  {
-    name: 'Salsa TMT', variant: '370 ml', price: 4000, category: 'Conservas', image: '/images/salsa.jpg',
-    description: 'La salsa que hacía la abuela, ahora en f. Elaborada con tomates San Marzano frescos de temporada. Cocinados lentamente con respeto, paciencia y cariño. Sin conservantes ni colorantes. Una salsa honesta que transforma cualquier pasta, pizza o guiso en algo especial. Disponible en tres tamaños para que nunca te falte.',
-  },
-  {
-    name: 'Asados TMT', variant: '460 ml', price: 6000, category: 'Conservas', image: '/images/Cosecha.jpg',
-    description: 'El sabor del asado, todo el año. Tomates asados al horno lentamente hasta concentrar todo su sabor. Una conserva versátil que funciona para el picoteo, como base de salsas, acompañamiento de carnes o simplemente sobre un pan tostado. Hecha en pequeños lotes para cuidar cada detalle.',
-  },
-  {
-    name: 'Mermelada TMT', variant: '460 ml', price: 7500, category: 'Conservas', image: '/images/tomate.jpg',
-    description: 'Dulce de verdad, con fruta de verdad. Mermelada artesanal elaborada con fruta fresca de temporada, sin pectina industrial ni conservantes. Cocción lenta en pequeños lotes para preservar el sabor natural. Perfecta sobre tostadas, con queso, yogurt o como relleno de queques caseros.',
-  },
-  {
-    name: 'Mermelada TMT', variant: '320 ml', price: 5500, category: 'Conservas', image: null,
-    description: 'Dulce de verdad, con fruta de verdad. Mermelada artesanal elaborada con fruta fresca de temporada, sin pectina industrial ni conservantes. Cocción lenta en pequeños lotes para preservar el sabor natural. Perfecta sobre tostadas, con queso, yogurt o como relleno de queques caseros.',
-  },
-  {
-    name: 'Mermelada TMT con ají', variant: '460 ml', price: 8500, category: 'Conservas', image: null,
-    description: 'Para los que les gusta vivir con sabor. La misma mermelada artesanal de siempre, con el toque jjí para crear ese equilibrio perfecto entre dulce y picante. Ideal para acompañar quesos, charcutería o para darle carácter a cualquier tabla. Una vez que la pruebas, no hay vuelta atrás.',
-  },
-  // Frescos
-  {
-    name: 'Palta Hass', variant: '1 kg', price: 5000, category: 'Frescos', image: '/images/palta.jpg',
-    description: 'Cultivada con respeto, cosechada en su punto. Paltas Hass producidas con prácticas agroecológicas, sin pesticidas ni químicos innecesarios. De piel rugosa y pulpa cremosa con ese sabor mantecoso que las hace únicas. Cosechadas a mano y seleccionadas una por una para que lleguen perfectas a tu mesa.',
-  },
-  {
-    name: 'Queso Runca maduro', variant: '1 kg', price: 16000, category: 'Frescos', image: '/images/queso_maduro.jpg',
-    description: 'El tiempo es el ingrediente secreto. Un queso de guarda elaborado artesanalmente en Valdivia y madurado durante 90 días. De pasta firme, sabor complejo y ese toque salado que se desarrolla solo con la paciencia del tiempo. Perfecto para tablas, rallado sobre pastas o simplemente con un buen vino tinto.',
-  },
-  {
-    name: 'Queso Runca mantecoso', variant: '900 g', price: 13500, category: 'Frescos', image: '/images/queso_mantecoso.jpg',
-    description: 'Suave, cremoso, irresistible. Queso fresco de corta maduración, elaborado con leche entera en Valdivia. De textura suave y sabor lácteo limso perfecto para el desayuno, sándwiches o para derretir sobre cualquier preparación caliente. Disponible en 500g y 900g.',
-  },
-  {
-    name: 'Queso Runca mantecoso', variant: '500 g', price: 8500, category: 'Frescos', image: '/images/queso_mantecoso.jpg',
-    description: 'Suave, cremoso, irresistible. Queso fresco de corta maduración, elaborado con leche entera en Valdivia. De textura suave y sabor lácteo limso perfecto para el desayuno, sándwiches o para derretir sobre cualquier preparación caliente. Disponible en 500g y 900g.',
-  },
-  // Aceites y especias
-  {
-    name: 'Aceite oliva mediterráneo', variant: '1 lt', price: 11000, category: 'Aceites y especias', image: '/images/Aceite_mediterraneo.jpg',
-    description: 'Aceite de oliva extra virgen prensado en frío, de perfil suave y neutro que realza sin opacar. Ideal para cocinar, saltear verduras y aderezar ensaladas.',
-  },
-  {
-    name: 'Oliu Premium', variant: '1 lt', price: 13500, category: 'Aceites y especias', image: '/images/Aceite_oliu.jpg',
-    description: 'Aceite de oliva extra virgen de categoría premium, prensado en frío para preservar todos sus antioxidantes y aromas. Ideal para uso en crudo, sobre ensaladas, carpaccios, hummus o pan.',
-  },
-  {
-    name: 'Merkén cacho cabra', variant: 'Unidad', price: 3500, category: 'Aceites y especias', image: '/images/merken_solo.jpg',
-    description: 'El condimento del sur de Chile. Merkén artesanal elaborado con ají cacho de cabra ahumado y molido, una tradición mapuche con siglos de historia. Disponible en sabores ahumado, ajo, cilantro, albahaca y avellana. Úsalo para sazonar carnes, mariscos, sopas, huevos o lo que se te ocurra. Este condimento transforma cualquier plato.',
-  },
-  {
-    name: 'Merkén cacho cabra', variant: 'Pack 3', price: 10000, category: 'Aceites y especias', image: '/images/merken.jpg',
-    description: 'El condimento del sur de Chile. Merkén artesanal elaborado con ají cacho de cabra ahumado y molido, una tradición mapuche con siglos de historia. Disponible en sabores ahumado, ajo, cilantro, albahaca y avellana. Úsalo para sazonar carnes, mariscos, sopas, huevos o lo que se te ocurra. Este condimento transforma cualquier plato.',
-  },
-]
+function StockBadge({ stock }: { stock: number | null }) {
+  if (stock === null || stock > 5) return null
+  if (stock === 0) return (
+    <span className="self-start px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-medium">
+      Agotado
+    </span>
+  )
+  return (
+    <span className="self-start flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-medium">
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+      </svg>
+      Últimas unidades
+    </span>
+  )
+}
 
 const categories = ['Todos', 'Tomates', 'Conservas', 'Frescos', 'Aceites y especias']
 
@@ -160,13 +102,15 @@ function ProductModal({
           {product.description && (
             <p className="text-sm text-zinc-600 leading-relaxed">{product.description}</p>
           )}
+          <StockBadge stock={product.stock} />
           <div className="flex items-center justify-between pt-1">
             <span className="text-2xl font-bold text-[#CC3311]">{formatPrice(product.price)}</span>
             <button
               onClick={() => { onAddToCart(); onClose() }}
-              className="px-4 py-2 rounded-xl bg-[#CC3311] text-white text-sm font-semibold hover:bg-[#aa2a0d] active:scale-95 transition-all"
+              disabled={product.stock === 0}
+              className="px-4 py-2 rounded-xl bg-[#CC3311] text-white text-sm font-semibold hover:bg-[#aa2a0d] active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Agregar al carrito
+              {product.stock === 0 ? 'Agotado' : 'Agregar al carrito'}
             </button>
           </div>
         </div>
@@ -178,10 +122,23 @@ function ProductModal({
 type Selecting = { key: string; qty: number }
 
 export default function Catalog() {
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState('Todos')
   const [selecting, setSelecting] = useState<Selecting | null>(null)
   const [modalProduct, setModalProduct] = useState<Product | null>(null)
   const { addItem, totalItems, setIsOpen } = useCart()
+
+  useEffect(() => {
+    supabase
+      .from('products')
+      .select('id, name, variant, price, category, image, description, active, stock')
+      .eq('active', true)
+      .then(({ data }) => {
+        setProducts((data as Product[]) ?? [])
+        setLoading(false)
+      })
+  }, [])
 
   function productKey(p: Product) {
     return `${p.name}-${p.variant}`
@@ -248,106 +205,124 @@ export default function Catalog() {
           ))}
         </div>
 
+        {/* Estado de carga */}
+        {loading && (
+          <div className="flex justify-center py-24">
+            <div className="h-8 w-8 rounded-full border-2 border-zinc-300 border-t-[#CC3311] animate-spin" />
+          </div>
+        )}
+
         {/* Productos agrupados por categoría */}
-        <div className="space-y-10">
-          {Object.entries(grouped).map(([category, items]) => (
-            <section key={category}>
-              <h2 className="text-lg font-semibold text-zinc-800 mb-4 pb-2 border-b-2 border-[#CC3311]">
-                {category}
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {items.map((product, i) => (
-                  <div
-                    key={i}
-                    className="bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col"
-                  >
-                    {/* Imagen */}
-                    <div className="relative aspect-square">
-                      {product.image ? (
-                        <Image
-                          src={product.image}
-                          alt={product.name}
-                          fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          style={{ objectFit: 'cover' }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-[#fdf6f0]">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-[#CC3311]/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
+        {!loading && (
+          <div className="space-y-10">
+            {Object.entries(grouped).map(([category, items]) => (
+              <section key={category}>
+                <h2 className="text-lg font-semibold text-zinc-800 mb-4 pb-2 border-b-2 border-[#CC3311]">
+                  {category}
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {items.map((product) => (
+                    <div
+                      key={product.id}
+                      className="bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col"
+                    >
+                      {/* Imagen */}
+                      <div className="relative aspect-square">
+                        {product.image ? (
+                          <Image
+                            src={product.image}
+                            alt={product.name}
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            style={{ objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-[#fdf6f0]">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-[#CC3311]/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
 
-                    {/* Contenido */}
-                    <div className="px-4 py-3 flex flex-col gap-1 flex-1">
-                      <span className="text-base font-medium text-zinc-800">{product.name}</span>
-                      <span className="text-sm text-zinc-500">{product.variant}</span>
+                      {/* Contenido */}
+                      <div className="px-4 py-3 flex flex-col gap-1 flex-1">
+                        <span className="text-base font-medium text-zinc-800">{product.name}</span>
+                        <span className="text-sm text-zinc-500">{product.variant}</span>
 
-                      {product.description && (
-                        <button
-                          onClick={() => setModalProduct(product)}
-                          className="self-start text-xs font-medium text-[#CC3311] hover:underline transition-colors"
-                        >
-                          Ver más →
-                        </button>
-                      )}
+                        {product.description && (
+                          <button
+                            onClick={() => setModalProduct(product)}
+                            className="self-start text-xs font-medium text-[#CC3311] hover:underline transition-colors"
+                          >
+                            Ver más →
+                          </button>
+                        )}
 
-                      {selecting?.key === productKey(product) ? (
-                        <div className="mt-2 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => setSelecting(s => s && s.qty > 1 ? { ...s, qty: s.qty - 1 } : s)}
-                              className="w-8 h-8 rounded-full border border-zinc-300 text-zinc-600 flex items-center justify-center hover:border-[#CC3311] hover:text-[#CC3311] transition-colors text-lg leading-none"
-                            >
-                              −
-                            </button>
-                            <span className="w-6 text-center text-sm font-bold text-zinc-800">
-                              {selecting.qty}
+                        <StockBadge stock={product.stock} />
+
+                        {selecting?.key === productKey(product) ? (
+                          <div className="mt-2 flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => setSelecting(s => s && s.qty > 1 ? { ...s, qty: s.qty - 1 } : s)}
+                                className="w-8 h-8 rounded-full border border-zinc-300 text-zinc-600 flex items-center justify-center hover:border-[#CC3311] hover:text-[#CC3311] transition-colors text-lg leading-none"
+                              >
+                                −
+                              </button>
+                              <span className="w-6 text-center text-sm font-bold text-zinc-800">
+                                {selecting.qty}
+                              </span>
+                              <button
+                                onClick={() => setSelecting(s => s ? { ...s, qty: s.qty + 1 } : s)}
+                                className="w-8 h-8 rounded-full border border-zinc-300 text-zinc-600 flex items-center justify-center hover:border-[#CC3311] hover:text-[#CC3311] transition-colors text-lg leading-none"
+                              >
+                                +
+                              </button>
+                            </div>
+                            <div className="flex gap-1.5">
+                              <button
+                                onClick={() => setSelecting(null)}
+                                className="px-2.5 py-1.5 rounded-lg border border-zinc-300 text-zinc-500 text-sm hover:bg-zinc-50 transition-colors"
+                              >
+                                ✕
+                              </button>
+                              <button
+                                onClick={() => handleConfirm(product)}
+                                className="px-3 py-1.5 rounded-lg bg-[#CC3311] text-white text-sm font-medium hover:bg-[#aa2a0d] active:scale-95 transition-all"
+                              >
+                                Agregar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-2 flex items-center justify-between gap-2">
+                            <span className="text-xl font-bold text-[#CC3311]">
+                              {formatPrice(product.price)}
                             </span>
                             <button
-                              onClick={() => setSelecting(s => s ? { ...s, qty: s.qty + 1 } : s)}
-                              className="w-8 h-8 rounded-full border border-zinc-300 text-zinc-600 flex items-center justify-center hover:border-[#CC3311] hover:text-[#CC3311] transition-colors text-lg leading-none"
-                            >
-                              +
-                            </button>
-                          </div>
-                          <div className="flex gap-1.5">
-                            <button
-                              onClick={() => setSelecting(null)}
-                              className="px-2.5 py-1.5 rounded-lg border border-zinc-300 text-zinc-500 text-sm hover:bg-zinc-50 transition-colors"
-                            >
-                              ✕
-                            </button>
-                            <button
-                              onClick={() => handleConfirm(product)}
-                              className="px-3 py-1.5 rounded-lg bg-[#CC3311] text-white text-sm font-medium hover:bg-[#aa2a0d] active:scale-95 transition-all"
+                              onClick={() => setSelecting({ key: productKey(product), qty: 1 })}
+                              disabled={product.stock === 0}
+                              className="shrink-0 px-3 py-1.5 rounded-lg bg-[#CC3311] text-white text-sm font-medium hover:bg-[#aa2a0d] active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               Agregar
                             </button>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="mt-2 flex items-center justify-between gap-2">
-                          <span className="text-xl font-bold text-[#CC3311]">
-                            {formatPrice(product.price)}
-                          </span>
-                          <button
-                            onClick={() => setSelecting({ key: productKey(product), qty: 1 })}
-                            className="shrink-0 px-3 py-1.5 rounded-lg bg-[#CC3311] text-white text-sm font-medium hover:bg-[#aa2a0d] active:scale-95 transition-all"
-                          >
-                            Agregar
-                          </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+
+            {Object.keys(grouped).length === 0 && (
+              <p className="text-center py-16 text-zinc-400 text-sm">
+                No hay productos disponibles en esta categoría.
+              </p>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Modal */}
