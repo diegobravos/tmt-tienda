@@ -42,7 +42,11 @@ function buildOrderMessage(
   lines.push('')
   lines.push('*Productos:*')
   for (const item of items) {
-    lines.push(`• ${item.name} (${item.variant}) x${item.quantity} — ${formatPrice(item.price * item.quantity)}`)
+    if (item.originalPrice) {
+      lines.push(`• ${item.name} (${item.variant}) x${item.quantity} — precio normal ${formatPrice(item.originalPrice)} → ${formatPrice(item.price)} — Total: ${formatPrice(item.price * item.quantity)}`)
+    } else {
+      lines.push(`• ${item.name} (${item.variant}) x${item.quantity} — ${formatPrice(item.price * item.quantity)}`)
+    }
   }
   lines.push('')
   lines.push(`*Subtotal:* ${formatPrice(totalPrice)}`)
@@ -177,9 +181,14 @@ export default function Confirmation() {
                     <span className="text-zinc-400"> ({item.variant})</span>
                     <span className="text-zinc-500"> × {item.quantity}</span>
                   </div>
-                  <span className="font-semibold text-zinc-800 shrink-0">
-                    {formatPrice(item.price * item.quantity)}
-                  </span>
+                  <div className="text-right shrink-0">
+                    {item.originalPrice && (
+                      <p className="text-xs text-zinc-400 line-through">{formatPrice(item.originalPrice * item.quantity)}</p>
+                    )}
+                    <span className="font-semibold text-zinc-800">
+                      {formatPrice(item.price * item.quantity)}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>

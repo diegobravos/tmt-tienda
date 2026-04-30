@@ -76,7 +76,12 @@ export default function Cart() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-zinc-800 leading-snug">{item.name}</p>
                   <p className="text-xs text-zinc-500">{item.variant}</p>
-                  <p className="text-sm font-bold text-[#CC3311] mt-1">
+                  {item.originalPrice && (
+                    <p className="text-xs text-zinc-400 line-through">
+                      {formatPrice(item.originalPrice * item.quantity)}
+                    </p>
+                  )}
+                  <p className="text-sm font-bold text-[#CC3311] mt-0.5">
                     {formatPrice(item.price * item.quantity)}
                   </p>
                 </div>

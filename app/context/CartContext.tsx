@@ -7,6 +7,7 @@ export type Product = {
   variant: string
   price: number
   category: string
+  originalPrice?: number  // presente si hay promoción activa
 }
 
 export type CartItem = Product & { quantity: number }
