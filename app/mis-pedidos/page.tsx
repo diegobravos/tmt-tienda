@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useSession, signIn, signOut } from 'next-auth/react'
 import { supabase } from '../lib/supabase'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -37,8 +38,6 @@ const TIME_LABELS: Record<string, string> = {
   afternoon: 'Tarde 15:00 – 19:00',
 }
 
-const STORAGE_KEY = 'tmt_customer_phone'
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatPrice(n: number) {
@@ -61,73 +60,48 @@ function formatDeliveryDate(dateStr: string) {
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function MisPedidosPage() {
-  const [phone, setPhone] = useState('')
-  const [savedPhone, setSavedPhone] = useState<string | null>(null)
+  const { data: session, status } = useSession()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(false)
-  const [notFound, setNotFound] = useState(false)
-  const [checked, setChecked] = useState(false)
+  const [fetched, setFetched] = useState(false)
 
-  // Leer teléfono guardado en localStorage
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      setSavedPhone(stored)
-      fetchOrders(stored)
-    } else {
-      setChecked(true)
-    }
-  }, [])
+    if (status !== 'authenticated' || !session?.user?.email) return
 
-  async function fetchOrders(tel: string) {
     setLoading(true)
-    setNotFound(false)
+    const email = session.user.email
 
-    const { data: customer } = await supabase
+    supabase
       .from('customers')
       .select('id')
-      .eq('phone', tel.trim())
+      .eq('email', email)
       .maybeSingle()
+      .then(({ data: customer }) => {
+        if (!customer) {
+          setOrders([])
+          setLoading(false)
+          setFetched(true)
+          return
+        }
+        supabase
+          .from('orders')
+          .select('id, total, shipping_cost, delivery_date, delivery_time, status, created_at, order_items(product_name, variant, quantity, price)')
+          .eq('customer_id', customer.id)
+          .order('created_at', { ascending: false })
+          .limit(1000)
+          .then(({ data }) => {
+            setOrders((data as Order[]) ?? [])
+            setLoading(false)
+            setFetched(true)
+          })
+      })
+  }, [status, session?.user?.email])
 
-    if (!customer) {
-      setNotFound(true)
-      setLoading(false)
-      setChecked(true)
-      return
-    }
+  // ── Cargando sesión ──
+  if (status === 'loading') return null
 
-    const { data } = await supabase
-      .from('orders')
-      .select('id, total, shipping_cost, delivery_date, delivery_time, status, created_at, order_items(product_name, variant, quantity, price)')
-      .eq('customer_id', customer.id)
-      .order('created_at', { ascending: false })
-      .limit(1000)
-
-    setOrders((data as Order[]) ?? [])
-    setLoading(false)
-    setChecked(true)
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!phone.trim()) return
-    localStorage.setItem(STORAGE_KEY, phone.trim())
-    setSavedPhone(phone.trim())
-    fetchOrders(phone.trim())
-  }
-
-  function handleChangePhone() {
-    localStorage.removeItem(STORAGE_KEY)
-    setSavedPhone(null)
-    setOrders([])
-    setNotFound(false)
-    setPhone('')
-  }
-
-  if (!checked) return null
-
-  // ── Formulario de teléfono ──
-  if (!savedPhone) {
+  // ── No autenticado ──
+  if (status === 'unauthenticated') {
     return (
       <div className="min-h-screen bg-zinc-50 flex flex-col">
         <header className="bg-[#CC3311] text-white py-5 px-6 shadow-md">
@@ -141,46 +115,34 @@ export default function MisPedidosPage() {
         </header>
 
         <main className="flex-1 flex items-center justify-center px-4 py-12">
-          <div className="w-full max-w-sm">
-            <div className="text-center mb-8">
+          <div className="w-full max-w-sm text-center space-y-6">
+            <div>
               <span className="text-5xl">🍅</span>
               <h1 className="mt-4 text-2xl font-bold text-zinc-900">Mis pedidos</h1>
               <p className="mt-2 text-sm text-zinc-500">
-                Ingresa tu teléfono para ver el historial de tus pedidos
+                Inicia sesión para ver tus pedidos
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-zinc-200 px-6 py-6 space-y-4">
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-zinc-700 mb-1">
-                  Teléfono
-                </label>
-                <input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                  placeholder="+56 9 1234 5678"
-                  autoFocus
-                  required
-                  className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#CC3311] focus:border-transparent"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading || !phone.trim()}
-                className="w-full py-3 rounded-xl bg-[#CC3311] text-white font-semibold text-sm hover:bg-[#aa2a0d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {loading ? 'Buscando…' : 'Ver mis pedidos'}
-              </button>
-            </form>
+            <button
+              onClick={() => signIn('google')}
+              className="w-full flex items-center justify-center gap-3 px-5 py-3 rounded-xl border border-zinc-300 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:border-zinc-400 transition-colors shadow-sm"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              Iniciar sesión con Google
+            </button>
           </div>
         </main>
       </div>
     )
   }
 
-  // ── Vista de pedidos ──
+  // ── Autenticado ──
   return (
     <div className="min-h-screen bg-zinc-50">
       <header className="bg-[#CC3311] text-white py-5 px-6 shadow-md">
@@ -192,45 +154,38 @@ export default function MisPedidosPage() {
             <span className="text-white/40">|</span>
             <h1 className="font-bold">Mis pedidos</h1>
           </div>
-          <button
-            onClick={handleChangePhone}
-            className="text-xs text-white/70 hover:text-white border border-white/30 hover:border-white/60 px-3 py-1.5 rounded-full transition-colors"
-          >
-            Cambiar número
-          </button>
+          <div className="flex items-center gap-2">
+            {session?.user?.image && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={session.user.image}
+                alt={session.user.name ?? ''}
+                className="h-8 w-8 rounded-full border-2 border-white/40"
+              />
+            )}
+            <span className="text-sm text-white/80 hidden sm:block">
+              {session?.user?.name}
+            </span>
+            <button
+              onClick={() => signOut()}
+              className="text-xs text-white/70 hover:text-white border border-white/30 hover:border-white/60 px-3 py-1.5 rounded-full transition-colors"
+            >
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        {/* Teléfono activo */}
-        <p className="text-xs text-zinc-400">
-          Mostrando pedidos para <span className="font-medium text-zinc-600">{savedPhone}</span>
-        </p>
-
         {/* Cargando */}
-        {loading && (
+        {(loading || !fetched) && (
           <div className="flex justify-center py-16">
             <div className="h-6 w-6 rounded-full border-2 border-zinc-300 border-t-[#CC3311] animate-spin" />
           </div>
         )}
 
-        {/* No encontrado */}
-        {!loading && notFound && (
-          <div className="text-center py-16 space-y-3">
-            <span className="text-4xl">🔍</span>
-            <p className="text-zinc-700 font-medium">No encontramos pedidos con este número</p>
-            <p className="text-sm text-zinc-400">Verifica que el teléfono coincida con el que usaste al hacer tu pedido</p>
-            <button
-              onClick={handleChangePhone}
-              className="mt-2 text-sm font-medium text-[#CC3311] hover:underline"
-            >
-              Intentar con otro número
-            </button>
-          </div>
-        )}
-
         {/* Sin pedidos */}
-        {!loading && !notFound && orders.length === 0 && (
+        {fetched && !loading && orders.length === 0 && (
           <div className="text-center py-16 space-y-2">
             <span className="text-4xl">📦</span>
             <p className="text-zinc-700 font-medium">Aún no tienes pedidos</p>
@@ -245,7 +200,7 @@ export default function MisPedidosPage() {
         )}
 
         {/* Tarjetas de pedidos */}
-        {!loading && orders.map(order => {
+        {fetched && !loading && orders.map(order => {
           const status = STATUS_CONFIG[order.status]
           const itemsSubtotal = order.order_items.reduce((s, i) => s + i.price * i.quantity, 0)
 

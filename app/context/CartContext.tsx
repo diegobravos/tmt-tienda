@@ -28,6 +28,7 @@ type CartContextType = {
   items: CartItem[]
   addItem: (product: Product, quantity?: number) => void
   updateQuantity: (name: string, variant: string, delta: number) => void
+  clearCart: () => void
   totalItems: number
   totalPrice: number
   shippingCost: number
@@ -71,6 +72,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
+  const clearCart = () => setItems([])
+
   const updateQuantity = (name: string, variant: string, delta: number) => {
     setItems((prev) =>
       prev
@@ -94,6 +97,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         items,
         addItem,
         updateQuantity,
+        clearCart,
         totalItems,
         totalPrice,
         shippingCost,

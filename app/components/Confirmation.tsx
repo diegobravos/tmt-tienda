@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
 import { useCart, FREE_SHIPPING_THRESHOLD } from '../context/CartContext'
 import { supabase } from '../lib/supabase'
 
@@ -74,8 +75,10 @@ export default function Confirmation() {
     shippingCost,
     totalWithShipping,
     customerData,
+    clearCart,
   } = useCart()
 
+  const { data: session } = useSession()
   const [orderSent, setOrderSent] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
 
@@ -92,6 +95,8 @@ export default function Confirmation() {
   const orderUrl = `https://wa.me/56994390886?text=${encodeURIComponent(orderMessage)}`
 
   async function handleConfirm() {
+    console.log('Session al confirmar:', session)
+    console.log('Email:', session?.user?.email)
     // Guardar en Supabase de forma silenciosa — siempre abre WhatsApp al final
     if (!customerData) return
     try {
@@ -107,12 +112,17 @@ export default function Confirmation() {
 
       let customerId: string
 
+      const email = session?.user?.email ?? null
+
       if (existing) {
         customerId = existing.id
+        if (email) {
+          await supabase.from('customers').update({ email }).eq('id', customerId)
+        }
       } else {
         const { data: created } = await supabase
           .from('customers')
-          .insert({ name: customerData.name, phone: customerData.phone, address: customerData.address })
+          .insert({ name: customerData.name, phone: customerData.phone, address: customerData.address, email })
           .select('id')
           .single()
         customerId = created!.id
@@ -334,7 +344,14 @@ export default function Confirmation() {
               </div>
             )}
 
-            {!orderSent && (
+            {orderSent ? (
+              <button
+                onClick={() => { clearCart(); setConfirmationOpen(false) }}
+                className="w-full py-3 rounded-xl bg-[#CC3311] text-white text-sm font-semibold hover:bg-[#aa2a0d] active:scale-95 transition-all"
+              >
+                Seguir comprando
+              </button>
+            ) : (
               <button
                 onClick={handleBack}
                 className="w-full py-3 rounded-xl border border-zinc-300 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
