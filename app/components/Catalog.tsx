@@ -66,17 +66,27 @@ function CartIcon() {
   )
 }
 
+const galleryMap: Record<string, string[]> = {
+  'Oliu Premium': ['/images/oliu_familia.png','/images/oliu_vegetales.png'],
+  'Merkén cacho cabra': ['/images/merken_familiar.png','/images/merken_campo.png'],
+  'Tomates Mix cherry': ['/images/cherrys_campo.png','/images/cherry-mozzarella.jpg'],
+  'Tomates Mix grandes': ['/images/cherry_grande_campo.jpg','/images/cherry_grandes_campo.jpg'],
+}
+
 function ProductModal({
   product,
   promo,
   onClose,
   onAddToCart,
+  extraImages,
 }: {
   product: Product
   promo?: Promotion
   onClose: () => void
   onAddToCart: () => void
+  extraImages?: string[]
 }) {
+  const [activeImage, setActiveImage] = useState(product.image)
   const discountedPrice = promo ? applyDiscount(product.price, promo) : product.price
 
   return (
@@ -96,9 +106,9 @@ function ProductModal({
         </button>
 
         <div className="relative aspect-square w-full">
-          {product.image ? (
+          {activeImage ? (
             <Image
-              src={product.image}
+              src={activeImage}
               alt={product.name}
               fill
               sizes="(max-width: 640px) 100vw, 384px"
@@ -117,6 +127,26 @@ function ProductModal({
             </span>
           )}
         </div>
+
+        {extraImages && extraImages.length > 0 && (
+          <div className="flex flex-row gap-2 px-3 pb-2 overflow-x-auto">
+            {[product.image, ...extraImages].map((src, i) => src && (
+              <button
+                key={i}
+                onClick={() => setActiveImage(src)}
+                className="shrink-0"
+              >
+                <Image
+                  src={src}
+                  alt={`${product.name} ${i + 1}`}
+                  width={64}
+                  height={64}
+                  className={`rounded-lg object-cover border-2 ${activeImage === src ? 'border-[#CC3311]' : 'border-transparent'}`}
+                />
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="px-5 py-4 space-y-3">
           <div>
@@ -402,6 +432,7 @@ export default function Catalog() {
           promo={promoMap.get(modalProduct.id)}
           onClose={() => setModalProduct(null)}
           onAddToCart={() => setSelecting({ key: productKey(modalProduct), qty: 1 })}
+          extraImages={galleryMap[modalProduct.name] ?? []}
         />
       )}
     </div>
