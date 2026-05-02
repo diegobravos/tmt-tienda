@@ -122,7 +122,7 @@ function ProductModal({
             </div>
           )}
           {promo && (
-            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#CC3311] text-white text-xs font-bold shadow">
+            <span className="absolute top-3 left-3 px-6 py-2.5 rounded-full bg-yellow-400 text-zinc-900 text-2xl font-black shadow-lg">
               {promoLabel(promo)}
             </span>
           )}
@@ -333,7 +333,7 @@ export default function Catalog() {
                             </div>
                           )}
                           {promo && (
-                            <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-[#CC3311] text-white text-xs font-bold shadow">
+                            <span className="absolute top-2 left-2 px-5 py-2 rounded-full bg-yellow-400 text-zinc-900 text-2xl font-black shadow-lg">
                               {promoLabel(promo)}
                             </span>
                           )}
