@@ -16,6 +16,7 @@ type Product = {
   description?: string
   active: boolean
   stock: number | null
+  images_carousel: string[] | null
 }
 
 type Promotion = {
@@ -66,28 +67,31 @@ function CartIcon() {
   )
 }
 
-const galleryMap: Record<string, string[]> = {
-  'Oliu Premium': ['/images/oliu_familia.png','/images/oliu_vegetales.png'],
-  'Merkén cacho cabra': ['/images/merken_familiar.png','/images/merken_campo.png'],
-  'Tomates Mix cherry': ['/images/cherrys_campo.png','/images/cherry-mozzarella.jpg'],
-  'Tomates Mix grandes': ['/images/cherry_grande_campo.jpg','/images/cherry_grandes_campo.jpg'],
-}
-
 function ProductModal({
   product,
   promo,
   onClose,
   onAddToCart,
-  extraImages,
 }: {
   product: Product
   promo?: Promotion
   onClose: () => void
   onAddToCart: () => void
-  extraImages?: string[]
 }) {
-  const [activeImage, setActiveImage] = useState(product.image)
+  const allImages = [
+    ...(product.image ? [product.image] : []),
+    ...(product.images_carousel ?? []),
+  ]
+  const [carouselIndex, setCarouselIndex] = useState(0)
+  const hasMultiple = allImages.length > 1
   const discountedPrice = promo ? applyDiscount(product.price, promo) : product.price
+
+  function prev() {
+    setCarouselIndex(i => (i - 1 + allImages.length) % allImages.length)
+  }
+  function next() {
+    setCarouselIndex(i => (i + 1) % allImages.length)
+  }
 
   return (
     <div
@@ -105,11 +109,12 @@ function ProductModal({
           ✕
         </button>
 
+        {/* Imagen / carrusel */}
         <div className="relative aspect-square w-full">
-          {activeImage ? (
+          {allImages.length > 0 ? (
             <Image
-              src={activeImage}
-              alt={product.name}
+              src={allImages[carouselIndex]}
+              alt={`${product.name} ${carouselIndex + 1}`}
               fill
               sizes="(max-width: 640px) 100vw, 384px"
               style={{ objectFit: 'cover' }}
@@ -126,24 +131,41 @@ function ProductModal({
               {promoLabel(promo)}
             </span>
           )}
+          {/* Flechas */}
+          {hasMultiple && (
+            <>
+              <button
+                onClick={prev}
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/85 flex items-center justify-center text-zinc-700 shadow hover:bg-white transition-colors"
+                aria-label="Imagen anterior"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={next}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/85 flex items-center justify-center text-zinc-700 shadow hover:bg-white transition-colors"
+                aria-label="Imagen siguiente"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </>
+          )}
         </div>
 
-        {extraImages && extraImages.length > 0 && (
-          <div className="flex flex-row gap-2 px-3 pb-2 overflow-x-auto">
-            {[product.image, ...extraImages].map((src, i) => src && (
+        {/* Indicadores de punto */}
+        {hasMultiple && (
+          <div className="flex justify-center gap-1.5 pt-3 pb-1">
+            {allImages.map((_, i) => (
               <button
                 key={i}
-                onClick={() => setActiveImage(src)}
-                className="shrink-0"
-              >
-                <Image
-                  src={src}
-                  alt={`${product.name} ${i + 1}`}
-                  width={64}
-                  height={64}
-                  className={`rounded-lg object-cover border-2 ${activeImage === src ? 'border-[#CC3311]' : 'border-transparent'}`}
-                />
-              </button>
+                onClick={() => setCarouselIndex(i)}
+                className={`w-2 h-2 rounded-full transition-colors ${i === carouselIndex ? 'bg-[#CC3311]' : 'bg-zinc-300'}`}
+                aria-label={`Ir a imagen ${i + 1}`}
+              />
             ))}
           </div>
         )}
@@ -194,7 +216,7 @@ export default function Catalog() {
     Promise.all([
       supabase
         .from('products')
-        .select('id, name, variant, price, category, image, description, active, stock')
+        .select('id, name, variant, price, category, image, description, active, stock, images_carousel')
         .eq('active', true),
       supabase
         .from('promotions')
@@ -432,7 +454,6 @@ export default function Catalog() {
           promo={promoMap.get(modalProduct.id)}
           onClose={() => setModalProduct(null)}
           onAddToCart={() => setSelecting({ key: productKey(modalProduct), qty: 1 })}
-          extraImages={galleryMap[modalProduct.name] ?? []}
         />
       )}
     </div>

@@ -1,6 +1,9 @@
 'use client'
 
-import { useState, useEffect, useTransition, useCallback } from 'react'
+// MIGRACIÓN PENDIENTE — ejecutar manualmente en Supabase SQL Editor:
+// alter table products add column if not exists images_carousel text[];
+
+import { useState, useEffect, useTransition, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import { validateAdminPassword } from './actions'
 import { supabase } from '../lib/supabase'
@@ -37,6 +40,7 @@ type Product = {
   description: string
   active: boolean
   stock: number | null
+  images_carousel: string[] | null
 }
 
 type ProductForm = Omit<Product, 'id'>
@@ -130,6 +134,7 @@ const EMPTY_FORM: ProductForm = {
   description: '',
   active: true,
   stock: null,
+  images_carousel: [],
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -162,7 +167,7 @@ function ProductModal({
 }) {
   const [form, setForm] = useState<ProductForm>(
     product
-      ? { name: product.name, variant: product.variant, price: product.price, category: product.category, image: product.image ?? '', description: product.description, active: product.active, stock: product.stock }
+      ? { name: product.name, variant: product.variant, price: product.price, category: product.category, image: product.image ?? '', description: product.description, active: product.active, stock: product.stock, images_carousel: product.images_carousel ?? [] }
       : { ...EMPTY_FORM }
   )
   // stockInput: string para manejar el campo vacío (= null) vs número
@@ -171,9 +176,79 @@ function ProductModal({
   )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [imagePreview, setImagePreview] = useState<string | null>(product?.image ?? null)
+  const [uploadingMain, setUploadingMain] = useState(false)
+  const [uploadingCarousel, setUploadingCarousel] = useState(false)
+  // Solo true si el usuario agregó o eliminó imágenes del carrusel en esta sesión
+  const [carouselDirty, setCarouselDirty] = useState(false)
+  const mainFileRef = useRef<HTMLInputElement>(null)
+  const carouselFileRef = useRef<HTMLInputElement>(null)
+  // ID estable para nombrar archivos (nuevo producto usa timestamp)
+  const sessionId = useRef(product?.id ?? `new-${Date.now()}`).current
 
   function set<K extends keyof ProductForm>(key: K, value: ProductForm[K]) {
     setForm(f => ({ ...f, [key]: value }))
+  }
+
+  async function handleMainImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Previsualización local inmediata
+    const localUrl = URL.createObjectURL(file)
+    setImagePreview(localUrl)
+
+    setUploadingMain(true)
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${sessionId}-main-${Date.now()}.${fileExt}`
+    const { error: uploadError } = await supabase.storage
+      .from('product-images')
+      .upload(fileName, file, { upsert: true })
+
+    if (uploadError) {
+      setError(`Error subiendo imagen: ${uploadError.message}`)
+      setUploadingMain(false)
+      return
+    }
+
+    const { data: urlData } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(fileName)
+
+    set('image', urlData.publicUrl)
+    setUploadingMain(false)
+  }
+
+  async function handleCarouselImageAdd(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingCarousel(true)
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${sessionId}-carousel-${Date.now()}.${fileExt}`
+    const { error: uploadError } = await supabase.storage
+      .from('product-images')
+      .upload(fileName, file, { upsert: true })
+
+    if (uploadError) {
+      setError(`Error subiendo imagen: ${uploadError.message}`)
+      setUploadingCarousel(false)
+      return
+    }
+
+    const { data: urlData } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(fileName)
+
+    set('images_carousel', [...(form.images_carousel ?? []), urlData.publicUrl])
+    setCarouselDirty(true)
+    setUploadingCarousel(false)
+    if (carouselFileRef.current) carouselFileRef.current.value = ''
+  }
+
+  function removeCarouselImage(index: number) {
+    set('images_carousel', (form.images_carousel ?? []).filter((_, i) => i !== index))
+    setCarouselDirty(true)
   }
 
   async function handleSave() {
@@ -184,7 +259,7 @@ function ProductModal({
     setSaving(true)
     setError('')
 
-    const payload = {
+    const basePayload = {
       name: form.name.trim(),
       variant: form.variant.trim(),
       price: form.price,
@@ -194,6 +269,11 @@ function ProductModal({
       active: form.active,
       stock: stockInput.trim() === '' ? null : Math.max(0, parseInt(stockInput, 10)),
     }
+
+    // Solo incluir images_carousel si el usuario lo modificó o es un producto nuevo
+    const payload = (carouselDirty || !product)
+      ? { ...basePayload, images_carousel: form.images_carousel && form.images_carousel.length > 0 ? form.images_carousel : null }
+      : basePayload
 
     const { error: dbError } = product
       ? await supabase.from('products').update(payload).eq('id', product.id)
@@ -292,16 +372,82 @@ function ProductModal({
             />
           </div>
 
-          {/* URL imagen */}
+          {/* Imagen principal */}
           <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1">URL de imagen</label>
+            <label className="block text-xs font-medium text-zinc-600 mb-2">Imagen principal</label>
+            {imagePreview && (
+              <div className="relative w-full h-40 rounded-xl overflow-hidden bg-zinc-100 mb-3">
+                <Image
+                  src={imagePreview}
+                  alt="Vista previa"
+                  fill
+                  sizes="(max-width: 640px) 100vw, 512px"
+                  style={{ objectFit: 'cover' }}
+                />
+                {uploadingMain && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                    <div className="h-6 w-6 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                  </div>
+                )}
+              </div>
+            )}
             <input
-              type="text"
-              value={form.image ?? ''}
-              onChange={e => set('image', e.target.value)}
-              placeholder="/images/producto.jpg"
-              className="w-full px-3 py-2 rounded-lg border border-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#CC3311]"
+              ref={mainFileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleMainImageChange}
             />
+            <button
+              type="button"
+              onClick={() => mainFileRef.current?.click()}
+              disabled={uploadingMain}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-zinc-300 text-zinc-600 text-sm hover:border-[#CC3311] hover:text-[#CC3311] disabled:opacity-50 transition-colors"
+            >
+              {uploadingMain ? 'Subiendo...' : 'Cambiar imagen principal'}
+            </button>
+          </div>
+
+          {/* Carrusel de imágenes */}
+          <div>
+            <label className="block text-xs font-medium text-zinc-600 mb-2">Carrusel de imágenes</label>
+            {form.images_carousel && form.images_carousel.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {form.images_carousel.map((url, i) => (
+                  <div key={i} className="relative">
+                    <Image
+                      src={url}
+                      alt={`Carrusel ${i + 1}`}
+                      width={64}
+                      height={64}
+                      className="rounded-lg object-cover border border-zinc-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeCarouselImage(i)}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 leading-none"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <input
+              ref={carouselFileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleCarouselImageAdd}
+            />
+            <button
+              type="button"
+              onClick={() => carouselFileRef.current?.click()}
+              disabled={uploadingCarousel}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-zinc-300 text-zinc-600 text-sm hover:border-[#CC3311] hover:text-[#CC3311] disabled:opacity-50 transition-colors"
+            >
+              {uploadingCarousel ? 'Subiendo...' : '+ Agregar imagen al carrusel'}
+            </button>
           </div>
 
           {/* Stock + Activo */}
@@ -366,7 +512,7 @@ function ProductsSection() {
     setLoading(true)
     const { data } = await supabase
       .from('products')
-      .select('id, name, variant, price, category, image, description, active, stock')
+      .select('id, name, variant, price, category, image, description, active, stock, images_carousel')
       .order('category')
       .order('name')
     setProducts((data as Product[]) ?? [])
