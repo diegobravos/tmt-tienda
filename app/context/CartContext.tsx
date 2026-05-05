@@ -24,11 +24,18 @@ export type CustomerData = {
 export const FREE_SHIPPING_THRESHOLD = 20000
 export const SHIPPING_COST = 2000
 
+export type PrefillCustomer = {
+  name: string
+  phone: string
+  address: string
+}
+
 type CartContextType = {
   items: CartItem[]
   addItem: (product: Product, quantity?: number) => void
   updateQuantity: (name: string, variant: string, delta: number) => void
   clearCart: () => void
+  loadItems: (items: CartItem[]) => void
   totalItems: number
   totalPrice: number
   shippingCost: number
@@ -45,6 +52,9 @@ type CartContextType = {
   // Customer data
   customerData: CustomerData | null
   setCustomerData: (data: CustomerData) => void
+  // Pre-fill checkout form from order history
+  prefillCustomer: PrefillCustomer | null
+  setPrefillCustomer: (data: PrefillCustomer | null) => void
 }
 
 const CartContext = createContext<CartContextType | null>(null)
@@ -55,6 +65,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [confirmationOpen, setConfirmationOpen] = useState(false)
   const [customerData, setCustomerData] = useState<CustomerData | null>(null)
+  const [prefillCustomer, setPrefillCustomer] = useState<PrefillCustomer | null>(null)
 
   const addItem = (product: Product, quantity = 1) => {
     setItems((prev) => {
@@ -73,6 +84,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }
 
   const clearCart = () => setItems([])
+
+  const loadItems = (newItems: CartItem[]) => setItems(newItems)
 
   const updateQuantity = (name: string, variant: string, delta: number) => {
     setItems((prev) =>
@@ -98,6 +111,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         addItem,
         updateQuantity,
         clearCart,
+        loadItems,
         totalItems,
         totalPrice,
         shippingCost,
@@ -110,6 +124,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setConfirmationOpen,
         customerData,
         setCustomerData,
+        prefillCustomer,
+        setPrefillCustomer,
       }}
     >
       {children}

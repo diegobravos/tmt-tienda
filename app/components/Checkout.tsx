@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useCart, CustomerData } from '../context/CartContext'
+import { normalizePhone } from '../lib/phone'
 
 function getNextWednesdays(count: number): { date: string; label: string }[] {
   const result: { date: string; label: string }[] = []
@@ -37,7 +38,7 @@ const TIME_OPTIONS = [
 type Errors = Partial<Record<'name' | 'phone' | 'address' | 'date' | 'time', string>>
 
 export default function Checkout() {
-  const { checkoutOpen, setCheckoutOpen, setConfirmationOpen, setCustomerData, items } = useCart()
+  const { checkoutOpen, setCheckoutOpen, setConfirmationOpen, setCustomerData, setPrefillCustomer, prefillCustomer, items } = useCart()
 
   const wednesdays = getNextWednesdays(3)
 
@@ -50,6 +51,12 @@ export default function Checkout() {
     time: '' as '' | 'morning' | 'afternoon',
   })
   const [errors, setErrors] = useState<Errors>({})
+
+  useEffect(() => {
+    if (!prefillCustomer) return
+    setForm(f => ({ ...f, name: prefillCustomer.name, phone: prefillCustomer.phone, address: prefillCustomer.address }))
+    setPrefillCustomer(null)
+  }, [prefillCustomer, setPrefillCustomer])
 
   if (!checkoutOpen) return null
 
@@ -70,7 +77,7 @@ export default function Checkout() {
 
     const data: CustomerData = {
       name: form.name.trim(),
-      phone: form.phone.trim(),
+      phone: normalizePhone(form.phone),
       address: form.address.trim(),
       date: form.date,
       dateLabel: form.dateLabel,
