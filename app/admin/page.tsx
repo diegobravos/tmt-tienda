@@ -1367,64 +1367,100 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 // ─── Sección configuración de despacho ───────────────────────────────────────
 
 type DeliveryConfig = {
-  delivery_date: string | null
+  id: string
+  delivery_date: string
   morning_available: boolean
   afternoon_available: boolean
 }
 
 function DeliveryConfigSection() {
-  const [config, setConfig] = useState<DeliveryConfig>({
-    delivery_date: null,
-    morning_available: true,
-    afternoon_available: true,
-  })
+  const [dates, setDates] = useState<DeliveryConfig[]>([])
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [newDate, setNewDate] = useState('')
+  const [newMorning, setNewMorning] = useState(true)
+  const [newAfternoon, setNewAfternoon] = useState(true)
+  const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState('')
 
-  useEffect(() => {
-    supabase
-      .from('delivery_config')
-      .select('delivery_date, morning_available, afternoon_available')
-      .eq('id', 1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setConfig(data as DeliveryConfig)
-        setLoading(false)
-      })
-  }, [])
+  const today = new Date().toISOString().split('T')[0]
 
-  async function handleSave() {
-    setSaving(true)
-    setSaveStatus('idle')
-    const { error } = await supabase
+  useEffect(() => { loadDates() }, [])
+
+  async function loadDates() {
+    const { data } = await supabase
       .from('delivery_config')
-      .upsert({
-        id: 1,
-        delivery_date: config.delivery_date || null,
-        morning_available: config.morning_available,
-        afternoon_available: config.afternoon_available,
-        updated_at: new Date().toISOString(),
-      })
-    setSaving(false)
-    if (error) {
-      setSaveStatus('error')
-    } else {
-      setSaveStatus('saved')
-      setTimeout(() => setSaveStatus('idle'), 3000)
-    }
+      .select('id, delivery_date, morning_available, afternoon_available')
+      .gte('delivery_date', today)
+      .order('delivery_date', { ascending: true })
+    setDates((data as DeliveryConfig[]) ?? [])
+    setLoading(false)
   }
 
-  function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  async function handleToggle(id: string, field: 'morning_available' | 'afternoon_available', value: boolean) {
+    setSavingId(id)
+    setDates(prev => prev.map(d => d.id === id ? { ...d, [field]: value } : d))
+    const { error } = await supabase.from('delivery_config').update({ [field]: value }).eq('id', id)
+    if (error) console.error('[delivery_config update]', error)
+    setSavingId(null)
+  }
+
+  async function handleDelete(id: string) {
+    setDeletingId(id)
+    const { error } = await supabase.from('delivery_config').delete().eq('id', id)
+    if (error) console.error('[delivery_config delete]', error)
+    setDates(prev => prev.filter(d => d.id !== id))
+    setDeletingId(null)
+  }
+
+  async function handleAdd() {
+    if (!newDate) { setAddError('Selecciona una fecha'); return }
+    if (!newMorning && !newAfternoon) { setAddError('Habilita al menos una franja'); return }
+    setAdding(true)
+    setAddError('')
+    const { error } = await supabase
+      .from('delivery_config')
+      .insert({ delivery_date: newDate, morning_available: newMorning, afternoon_available: newAfternoon })
+    if (error) {
+      console.error('[delivery_config insert]', error)
+      const msg = error.message ?? ''
+      if (msg.includes('unique') || msg.includes('duplicate')) {
+        setAddError('Esa fecha ya existe')
+      } else if (msg.includes('row-level security') || msg.includes('violates row')) {
+        setAddError('Sin permisos: habilita INSERT en delivery_config en Supabase')
+      } else {
+        setAddError(msg || 'Error al agregar')
+      }
+      setAdding(false)
+      return
+    }
+    setNewDate('')
+    setNewMorning(true)
+    setNewAfternoon(true)
+    await loadDates()
+    setAdding(false)
+  }
+
+  function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: () => void; disabled?: boolean }) {
     return (
       <button
         type="button"
         onClick={onChange}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? 'bg-[#CC3311]' : 'bg-zinc-300'}`}
+        disabled={disabled}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${checked ? 'bg-[#CC3311]' : 'bg-zinc-300'}`}
       >
         <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
       </button>
     )
+  }
+
+  function formatDate(dateStr: string): string {
+    const [y, m, d] = dateStr.split('-').map(Number)
+    const label = new Date(y, m - 1, d).toLocaleDateString('es-CL', {
+      weekday: 'long', day: 'numeric', month: 'long',
+    })
+    return label.charAt(0).toUpperCase() + label.slice(1)
   }
 
   if (loading) {
@@ -1435,109 +1471,96 @@ function DeliveryConfigSection() {
     )
   }
 
-  const previewDate = config.delivery_date
-    ? new Date(config.delivery_date + 'T12:00:00')
-        .toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })
-        .replace(/^./, c => c.toUpperCase())
-    : null
-
   return (
-    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden max-w-lg">
+    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden max-w-2xl">
       <div className="px-6 py-5 border-b border-zinc-100">
-        <h2 className="font-display font-bold text-zinc-900">Configuración de despacho</h2>
-        <p className="text-sm text-zinc-500 mt-0.5 font-mono">
-          Fecha y franjas horarias del próximo despacho
-        </p>
+        <h2 className="font-display font-bold text-zinc-900">Fechas de despacho</h2>
+        <p className="text-sm text-zinc-500 mt-0.5 font-mono">Próximas fechas disponibles para entrega</p>
       </div>
 
-      <div className="px-6 py-5 space-y-6">
-        {/* Fecha */}
-        <div className="space-y-2">
-          <label className="block text-xs font-mono text-zinc-600">Fecha del próximo despacho</label>
-          <input
-            type="date"
-            value={config.delivery_date ?? ''}
-            onChange={e => setConfig(c => ({ ...c, delivery_date: e.target.value || null }))}
-            className="px-3 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#CC3311] focus:border-transparent"
-          />
-          {config.delivery_date && (
+      {/* Lista de fechas */}
+      <div className="divide-y divide-zinc-100">
+        {dates.length === 0 && (
+          <div className="px-6 py-8 text-center text-sm text-zinc-400 font-mono">
+            No hay fechas programadas
+          </div>
+        )}
+        {dates.map(d => (
+          <div key={d.id} className="px-6 py-4 flex items-center gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-zinc-800 capitalize">{formatDate(d.delivery_date)}</p>
+            </div>
+            <div className="flex items-center gap-4 shrink-0">
+              <div className="flex flex-col items-center gap-1">
+                <Toggle
+                  checked={d.morning_available}
+                  onChange={() => handleToggle(d.id, 'morning_available', !d.morning_available)}
+                  disabled={savingId === d.id}
+                />
+                <span className="text-[10px] font-mono text-zinc-500">Mañana</span>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <Toggle
+                  checked={d.afternoon_available}
+                  onChange={() => handleToggle(d.id, 'afternoon_available', !d.afternoon_available)}
+                  disabled={savingId === d.id}
+                />
+                <span className="text-[10px] font-mono text-zinc-500">Tarde</span>
+              </div>
+            </div>
             <button
               type="button"
-              onClick={() => setConfig(c => ({ ...c, delivery_date: null }))}
-              className="text-xs font-mono text-zinc-400 hover:text-zinc-600 transition-colors"
+              onClick={() => handleDelete(d.id)}
+              disabled={deletingId === d.id}
+              className="p-2 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
+              aria-label="Eliminar fecha"
             >
-              ✕ Borrar fecha
+              {deletingId === d.id ? (
+                <div className="h-4 w-4 rounded-full border-2 border-zinc-300 border-t-red-500 animate-spin" />
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              )}
             </button>
-          )}
-        </div>
+          </div>
+        ))}
+      </div>
 
-        {/* Franjas horarias */}
-        <div className="space-y-3">
-          <p className="text-xs font-mono text-zinc-600">Franjas horarias disponibles</p>
-
-          <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-zinc-200">
-            <div>
-              <p className="text-sm font-medium text-zinc-800">Mañana</p>
-              <p className="text-xs font-mono text-zinc-500">10:00 – 13:00</p>
-            </div>
-            <Toggle
-              checked={config.morning_available}
-              onChange={() => setConfig(c => ({ ...c, morning_available: !c.morning_available }))}
+      {/* Agregar nueva fecha */}
+      <div className="px-6 py-5 bg-zinc-50 border-t border-zinc-100 space-y-4">
+        <p className="text-xs font-mono text-zinc-600 font-semibold uppercase tracking-wide">Agregar fecha</p>
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="space-y-1">
+            <label className="text-xs font-mono text-zinc-500">Fecha</label>
+            <input
+              type="date"
+              value={newDate}
+              min={today}
+              onChange={e => { setNewDate(e.target.value); setAddError('') }}
+              className="px-3 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#CC3311] focus:border-transparent"
             />
           </div>
-
-          <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-zinc-200">
-            <div>
-              <p className="text-sm font-medium text-zinc-800">Tarde</p>
-              <p className="text-xs font-mono text-zinc-500">15:00 – 19:00</p>
+          <div className="flex items-center gap-4 pb-0.5">
+            <div className="flex flex-col items-center gap-1">
+              <Toggle checked={newMorning} onChange={() => setNewMorning(v => !v)} />
+              <span className="text-[10px] font-mono text-zinc-500">Mañana</span>
             </div>
-            <Toggle
-              checked={config.afternoon_available}
-              onChange={() => setConfig(c => ({ ...c, afternoon_available: !c.afternoon_available }))}
-            />
+            <div className="flex flex-col items-center gap-1">
+              <Toggle checked={newAfternoon} onChange={() => setNewAfternoon(v => !v)} />
+              <span className="text-[10px] font-mono text-zinc-500">Tarde</span>
+            </div>
           </div>
-        </div>
-
-        {/* Vista previa */}
-        <div className="bg-zinc-50 rounded-xl px-4 py-3 space-y-1">
-          <p className="text-xs font-mono text-zinc-400 mb-2">Vista previa para el cliente</p>
-          {previewDate && (config.morning_available || config.afternoon_available) ? (
-            <div className="text-sm space-y-1">
-              <p className="text-zinc-700 font-medium capitalize">{previewDate}</p>
-              {config.morning_available && (
-                <p className="text-zinc-500 font-mono text-xs">Mañana 10:00 – 13:00</p>
-              )}
-              {config.afternoon_available && (
-                <p className="text-zinc-500 font-mono text-xs">Tarde 15:00 – 19:00</p>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm text-zinc-400 italic">Despacho no disponible por el momento</p>
-          )}
-        </div>
-
-        {/* Guardar */}
-        <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="px-5 py-2.5 rounded-xl bg-[#CC3311] text-white text-sm font-semibold hover:bg-[#aa2a0d] active:scale-95 transition-all disabled:opacity-60"
+            onClick={handleAdd}
+            disabled={adding}
+            className="px-5 py-2 rounded-xl bg-[#CC3311] text-white text-sm font-semibold hover:bg-[#aa2a0d] active:scale-95 transition-all disabled:opacity-60"
           >
-            {saving ? 'Guardando…' : 'Guardar configuración'}
+            {adding ? 'Agregando…' : 'Agregar'}
           </button>
-          {saveStatus === 'saved' && (
-            <span className="text-sm font-mono text-green-600 flex items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              Guardado
-            </span>
-          )}
-          {saveStatus === 'error' && (
-            <span className="text-sm font-mono text-red-500">Error al guardar</span>
-          )}
         </div>
+        {addError && <p className="text-xs font-mono text-red-500">{addError}</p>}
       </div>
     </div>
   )
