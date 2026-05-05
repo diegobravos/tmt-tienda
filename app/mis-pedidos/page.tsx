@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { supabase } from '../lib/supabase'
@@ -590,7 +591,9 @@ function PageHeader({
           </Link>
         )}
         <span className="text-white/40">|</span>
-        <span className="font-bold">TMT Tienda</span>
+        <div className="bg-white rounded-lg px-2 py-1 shadow-sm">
+          <Image src="/images/logo.png" alt="TMT" width={56} height={37} className="h-8 w-auto" />
+        </div>
       </div>
     </header>
   )

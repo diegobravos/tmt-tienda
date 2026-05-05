@@ -39,12 +39,12 @@ function promoLabel(promo: Promotion): string {
 function StockBadge({ stock }: { stock: number | null }) {
   if (stock === null || stock > 5) return null
   if (stock === 0) return (
-    <span className="self-start px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-medium">
+    <span className="self-start px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-mono">
       Agotado
     </span>
   )
   return (
-    <span className="self-start flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-medium">
+    <span className="self-start flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-mono">
       <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
       </svg>
@@ -127,7 +127,7 @@ function ProductModal({
             </div>
           )}
           {promo && (
-            <span className="absolute top-3 left-3 px-6 py-2.5 rounded-full bg-yellow-400 text-zinc-900 text-2xl font-black shadow-lg">
+            <span className="absolute top-3 left-3 px-6 py-2.5 rounded-full bg-yellow-400 text-zinc-900 text-2xl font-black font-mono shadow-lg">
               {promoLabel(promo)}
             </span>
           )}
@@ -267,9 +267,18 @@ export default function Catalog() {
       {/* Header */}
       <header className="bg-[#CC3311] text-white py-6 px-6 shadow-md sticky top-0 z-30">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">TMT Tienda</h1>
-            <p className="mt-0.5 text-red-100 text-sm">Productos artesanales chilenos</p>
+          <div className="flex items-center gap-3">
+            <div className="bg-white rounded-xl px-3 py-1.5 shadow-sm">
+              <Image
+                src="/images/logo.png"
+                alt="TMT"
+                width={72}
+                height={48}
+                className="h-11 w-auto"
+                priority
+              />
+            </div>
+            <p className="font-mono text-sm text-red-100 hidden sm:block">Productos artesanales chilenos</p>
           </div>
           <div className="flex items-center gap-1">
             <Link
@@ -301,7 +310,7 @@ export default function Catalog() {
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+              className={`px-4 py-2 rounded-full text-sm font-mono border transition-colors ${
                 activeCategory === cat
                   ? 'bg-[#CC3311] text-white border-[#CC3311]'
                   : 'bg-white text-zinc-700 border-zinc-300 hover:border-[#CC3311] hover:text-[#CC3311]'
@@ -324,7 +333,7 @@ export default function Catalog() {
           <div className="space-y-10">
             {Object.entries(grouped).map(([category, items]) => (
               <section key={category}>
-                <h2 className="text-lg font-semibold text-zinc-800 mb-4 pb-2 border-b-2 border-[#CC3311]">
+                <h2 className="font-display font-bold uppercase text-lg tracking-wide text-zinc-800 mb-4 pb-2 border-b-2 border-[#CC3311]">
                   {category}
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -355,7 +364,7 @@ export default function Catalog() {
                             </div>
                           )}
                           {promo && (
-                            <span className="absolute top-2 left-2 px-5 py-2 rounded-full bg-yellow-400 text-zinc-900 text-2xl font-black shadow-lg">
+                            <span className="absolute top-2 left-2 px-5 py-2 rounded-full bg-yellow-400 text-zinc-900 text-2xl font-black font-mono shadow-lg">
                               {promoLabel(promo)}
                             </span>
                           )}
@@ -363,7 +372,7 @@ export default function Catalog() {
 
                         {/* Contenido */}
                         <div className="px-4 py-3 flex flex-col gap-1 flex-1">
-                          <span className="text-base font-medium text-zinc-800">{product.name}</span>
+                          <span className="text-base font-bold text-zinc-800">{product.name}</span>
                           <span className="text-sm text-zinc-500">{product.variant}</span>
 
                           {product.description && (

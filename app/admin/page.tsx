@@ -95,17 +95,17 @@ function formatPromoDate(d: string | null): string {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function StockCell({ stock }: { stock: number | null }) {
-  if (stock === null) return <span className="text-zinc-400 text-xs">Sin límite</span>
-  if (stock === 0) return <span className="text-red-600 text-xs font-semibold">Agotado</span>
+  if (stock === null) return <span className="text-zinc-400 text-xs font-mono">Sin límite</span>
+  if (stock === 0) return <span className="text-red-600 text-xs font-mono">Agotado</span>
   if (stock <= 5) return (
-    <span className="flex items-center gap-1 text-yellow-600 text-xs font-semibold">
+    <span className="flex items-center gap-1 text-yellow-600 text-xs font-mono">
       <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
       </svg>
       {stock}
     </span>
   )
-  return <span className="text-green-600 text-xs font-semibold">{stock}</span>
+  return <span className="text-green-600 text-xs font-mono">{stock}</span>
 }
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -299,7 +299,7 @@ function ProductModal({
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h2 className="font-bold text-zinc-900">
+          <h2 className="font-display font-bold text-zinc-900">
             {product ? 'Editar producto' : 'Nuevo producto'}
           </h2>
           <button
@@ -313,7 +313,7 @@ function ProductModal({
         <div className="px-6 py-5 space-y-4">
           {/* Nombre */}
           <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1">Nombre</label>
+            <label className="block text-xs font-mono text-zinc-600 mb-1">Nombre</label>
             <input
               type="text"
               value={form.name}
@@ -324,7 +324,7 @@ function ProductModal({
 
           {/* Variante */}
           <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1">Variante</label>
+            <label className="block text-xs font-mono text-zinc-600 mb-1">Variante</label>
             <input
               type="text"
               value={form.variant}
@@ -337,7 +337,7 @@ function ProductModal({
           {/* Precio + Categoría */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-zinc-600 mb-1">Precio (CLP)</label>
+              <label className="block text-xs font-mono text-zinc-600 mb-1">Precio (CLP)</label>
               <input
                 type="number"
                 min={0}
@@ -348,7 +348,7 @@ function ProductModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-600 mb-1">Categoría</label>
+              <label className="block text-xs font-mono text-zinc-600 mb-1">Categoría</label>
               <select
                 value={form.category}
                 onChange={e => set('category', e.target.value)}
@@ -363,7 +363,7 @@ function ProductModal({
 
           {/* Descripción */}
           <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1">Descripción</label>
+            <label className="block text-xs font-mono text-zinc-600 mb-1">Descripción</label>
             <textarea
               value={form.description}
               onChange={e => set('description', e.target.value)}
@@ -374,7 +374,7 @@ function ProductModal({
 
           {/* Imagen principal */}
           <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-2">Imagen principal</label>
+            <label className="block text-xs font-mono text-zinc-600 mb-2">Imagen principal</label>
             {imagePreview && (
               <div className="relative w-full h-40 rounded-xl overflow-hidden bg-zinc-100 mb-3">
                 <Image
@@ -410,7 +410,7 @@ function ProductModal({
 
           {/* Carrusel de imágenes */}
           <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-2">Carrusel de imágenes</label>
+            <label className="block text-xs font-mono text-zinc-600 mb-2">Carrusel de imágenes</label>
             {form.images_carousel && form.images_carousel.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-3">
                 {form.images_carousel.map((url, i) => (
@@ -453,7 +453,7 @@ function ProductModal({
           {/* Stock + Activo */}
           <div className="grid grid-cols-2 gap-3 items-end">
             <div>
-              <label className="block text-xs font-medium text-zinc-600 mb-1">Stock</label>
+              <label className="block text-xs font-mono text-zinc-600 mb-1">Stock</label>
               <input
                 type="number"
                 min={0}
@@ -465,7 +465,7 @@ function ProductModal({
               />
             </div>
             <div className="flex items-center justify-between py-2 px-1">
-              <span className="text-sm font-medium text-zinc-700">Activo</span>
+              <span className="text-sm font-mono text-zinc-700">Activo</span>
               <button
                 type="button"
                 onClick={() => set('active', !form.active)}
@@ -557,13 +557,13 @@ function ProductsSection() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-200 bg-zinc-50">
-                <th className="text-left px-4 py-3 font-medium text-zinc-500 w-12">Img</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-500">Nombre</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-500 hidden sm:table-cell">Variante</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-500 hidden md:table-cell">Categoría</th>
-                <th className="text-right px-4 py-3 font-medium text-zinc-500">Precio</th>
-                <th className="text-center px-4 py-3 font-medium text-zinc-500">Stock</th>
-                <th className="text-center px-4 py-3 font-medium text-zinc-500">Activo</th>
+                <th className="text-left px-4 py-3 font-mono text-zinc-500 w-12">Img</th>
+                <th className="text-left px-4 py-3 font-mono text-zinc-500">Nombre</th>
+                <th className="text-left px-4 py-3 font-mono text-zinc-500 hidden sm:table-cell">Variante</th>
+                <th className="text-left px-4 py-3 font-mono text-zinc-500 hidden md:table-cell">Categoría</th>
+                <th className="text-right px-4 py-3 font-mono text-zinc-500">Precio</th>
+                <th className="text-center px-4 py-3 font-mono text-zinc-500">Stock</th>
+                <th className="text-center px-4 py-3 font-mono text-zinc-500">Activo</th>
                 <th className="px-4 py-3 w-20"></th>
               </tr>
             </thead>
@@ -738,7 +738,7 @@ function PromotionModal({
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h2 className="font-bold text-zinc-900">
+          <h2 className="font-display font-bold text-zinc-900">
             {promotion ? 'Editar promoción' : 'Nueva promoción'}
           </h2>
           <button
@@ -752,7 +752,7 @@ function PromotionModal({
         <div className="px-6 py-5 space-y-4">
           {/* Producto */}
           <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1">Producto</label>
+            <label className="block text-xs font-mono text-zinc-600 mb-1">Producto</label>
             <select
               value={form.product_id}
               onChange={e => set('product_id', e.target.value)}
@@ -767,7 +767,7 @@ function PromotionModal({
 
           {/* Tipo de descuento */}
           <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-2">Tipo de descuento</label>
+            <label className="block text-xs font-mono text-zinc-600 mb-2">Tipo de descuento</label>
             <div className="flex gap-3">
               {(['percentage', 'fixed'] as const).map(t => (
                 <label key={t} className="flex items-center gap-2 cursor-pointer">
@@ -789,7 +789,7 @@ function PromotionModal({
 
           {/* Valor */}
           <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1">
+            <label className="block text-xs font-mono text-zinc-600 mb-1">
               {form.type === 'percentage' ? 'Porcentaje de descuento (1–100)' : 'Monto a descontar (CLP)'}
             </label>
             <div className="relative">
@@ -812,7 +812,7 @@ function PromotionModal({
           {/* Fechas */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-zinc-600 mb-1">Fecha inicio (opcional)</label>
+              <label className="block text-xs font-mono text-zinc-600 mb-1">Fecha inicio (opcional)</label>
               <input
                 type="date"
                 value={form.start_date}
@@ -821,7 +821,7 @@ function PromotionModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-600 mb-1">Fecha término (opcional)</label>
+              <label className="block text-xs font-mono text-zinc-600 mb-1">Fecha término (opcional)</label>
               <input
                 type="date"
                 value={form.end_date}
@@ -833,7 +833,7 @@ function PromotionModal({
 
           {/* Activo */}
           <div className="flex items-center justify-between py-1">
-            <span className="text-sm font-medium text-zinc-700">Activa</span>
+            <span className="text-sm font-mono text-zinc-700">Activa</span>
             <button
               type="button"
               onClick={() => set('active', !form.active)}
@@ -925,10 +925,10 @@ function PromotionsSection() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-200 bg-zinc-50">
-                <th className="text-left px-4 py-3 font-medium text-zinc-500">Producto</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-500">Descuento</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-500 hidden md:table-cell">Vigencia</th>
-                <th className="text-center px-4 py-3 font-medium text-zinc-500">Activa</th>
+                <th className="text-left px-4 py-3 font-mono text-zinc-500">Producto</th>
+                <th className="text-left px-4 py-3 font-mono text-zinc-500">Descuento</th>
+                <th className="text-left px-4 py-3 font-mono text-zinc-500 hidden md:table-cell">Vigencia</th>
+                <th className="text-center px-4 py-3 font-mono text-zinc-500">Activa</th>
                 <th className="px-4 py-3 w-28"></th>
               </tr>
             </thead>
@@ -956,7 +956,7 @@ function PromotionsSection() {
 
                     {/* Descuento */}
                     <td className="px-4 py-3">
-                      <span className="inline-block px-2.5 py-1 rounded-full bg-red-50 text-[#CC3311] text-xs font-bold">
+                      <span className="inline-block px-2.5 py-1 rounded-full bg-red-50 text-[#CC3311] text-xs font-mono">
                         {formatPromoDiscount(promo.type, promo.value)}
                       </span>
                     </td>
@@ -1026,7 +1026,7 @@ function PromotionsSection() {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
-  const [section, setSection] = useState<'pedidos' | 'productos' | 'promociones'>('pedidos')
+  const [section, setSection] = useState<'pedidos' | 'productos' | 'promociones' | 'despacho'>('pedidos')
 
   // ── Estado pedidos ──
   const [orders, setOrders] = useState<Order[]>([])
@@ -1113,28 +1113,34 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       <header className="bg-white border-b border-zinc-200 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🍅</span>
-            <h1 className="font-bold text-zinc-900 hidden sm:block">Panel de administración TMT</h1>
+            <Image src="/images/logo.png" alt="TMT" width={56} height={37} className="h-9 w-auto" />
+            <h1 className="font-display font-bold text-zinc-900 hidden sm:block">Panel de administración</h1>
           </div>
           {/* Nav secciones */}
           <nav className="flex rounded-xl border border-zinc-200 overflow-hidden text-sm">
             <button
               onClick={() => setSection('pedidos')}
-              className={`px-4 py-2 font-medium transition-colors ${section === 'pedidos' ? 'bg-[#CC3311] text-white' : 'text-zinc-600 hover:bg-zinc-50'}`}
+              className={`px-4 py-2 font-mono transition-colors ${section === 'pedidos' ? 'bg-[#CC3311] text-white' : 'text-zinc-600 hover:bg-zinc-50'}`}
             >
               Pedidos
             </button>
             <button
               onClick={() => setSection('productos')}
-              className={`px-4 py-2 font-medium transition-colors ${section === 'productos' ? 'bg-[#CC3311] text-white' : 'text-zinc-600 hover:bg-zinc-50'}`}
+              className={`px-4 py-2 font-mono transition-colors ${section === 'productos' ? 'bg-[#CC3311] text-white' : 'text-zinc-600 hover:bg-zinc-50'}`}
             >
               Productos
             </button>
             <button
               onClick={() => setSection('promociones')}
-              className={`px-4 py-2 font-medium transition-colors ${section === 'promociones' ? 'bg-[#CC3311] text-white' : 'text-zinc-600 hover:bg-zinc-50'}`}
+              className={`px-4 py-2 font-mono transition-colors ${section === 'promociones' ? 'bg-[#CC3311] text-white' : 'text-zinc-600 hover:bg-zinc-50'}`}
             >
               Promociones
+            </button>
+            <button
+              onClick={() => setSection('despacho')}
+              className={`px-4 py-2 font-mono transition-colors ${section === 'despacho' ? 'bg-[#CC3311] text-white' : 'text-zinc-600 hover:bg-zinc-50'}`}
+            >
+              Despacho
             </button>
           </nav>
         </div>
@@ -1158,7 +1164,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   <button
                     key={s}
                     onClick={() => setStatusFilter(s)}
-                    className={`px-3 py-2 font-medium capitalize transition-colors ${
+                    className={`px-3 py-2 font-mono capitalize transition-colors ${
                       statusFilter === s
                         ? 'bg-[#CC3311] text-white'
                         : 'text-zinc-600 hover:bg-zinc-50'
@@ -1234,7 +1240,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                       <p className="text-sm text-zinc-500">{customer?.address}</p>
                     </div>
                     <div className="flex flex-col items-end gap-2 shrink-0">
-                      <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${status?.badge}`}>
+                      <span className={`px-2.5 py-1 rounded-full border text-xs font-mono ${status?.badge}`}>
                         {status?.label}
                       </span>
                       <p className="text-xs text-zinc-400">#{order.id.slice(0, 8)}</p>
@@ -1350,7 +1356,189 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         {/* ── Sección Promociones ── */}
         {section === 'promociones' && <PromotionsSection />}
 
+        {/* ── Sección Despacho ── */}
+        {section === 'despacho' && <DeliveryConfigSection />}
+
       </main>
+    </div>
+  )
+}
+
+// ─── Sección configuración de despacho ───────────────────────────────────────
+
+type DeliveryConfig = {
+  delivery_date: string | null
+  morning_available: boolean
+  afternoon_available: boolean
+}
+
+function DeliveryConfigSection() {
+  const [config, setConfig] = useState<DeliveryConfig>({
+    delivery_date: null,
+    morning_available: true,
+    afternoon_available: true,
+  })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+
+  useEffect(() => {
+    supabase
+      .from('delivery_config')
+      .select('delivery_date, morning_available, afternoon_available')
+      .eq('id', 1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setConfig(data as DeliveryConfig)
+        setLoading(false)
+      })
+  }, [])
+
+  async function handleSave() {
+    setSaving(true)
+    setSaveStatus('idle')
+    const { error } = await supabase
+      .from('delivery_config')
+      .upsert({
+        id: 1,
+        delivery_date: config.delivery_date || null,
+        morning_available: config.morning_available,
+        afternoon_available: config.afternoon_available,
+        updated_at: new Date().toISOString(),
+      })
+    setSaving(false)
+    if (error) {
+      setSaveStatus('error')
+    } else {
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus('idle'), 3000)
+    }
+  }
+
+  function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+    return (
+      <button
+        type="button"
+        onClick={onChange}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? 'bg-[#CC3311]' : 'bg-zinc-300'}`}
+      >
+        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
+      </button>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <div className="h-6 w-6 rounded-full border-2 border-zinc-300 border-t-[#CC3311] animate-spin" />
+      </div>
+    )
+  }
+
+  const previewDate = config.delivery_date
+    ? new Date(config.delivery_date + 'T12:00:00')
+        .toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })
+        .replace(/^./, c => c.toUpperCase())
+    : null
+
+  return (
+    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden max-w-lg">
+      <div className="px-6 py-5 border-b border-zinc-100">
+        <h2 className="font-display font-bold text-zinc-900">Configuración de despacho</h2>
+        <p className="text-sm text-zinc-500 mt-0.5 font-mono">
+          Fecha y franjas horarias del próximo despacho
+        </p>
+      </div>
+
+      <div className="px-6 py-5 space-y-6">
+        {/* Fecha */}
+        <div className="space-y-2">
+          <label className="block text-xs font-mono text-zinc-600">Fecha del próximo despacho</label>
+          <input
+            type="date"
+            value={config.delivery_date ?? ''}
+            onChange={e => setConfig(c => ({ ...c, delivery_date: e.target.value || null }))}
+            className="px-3 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#CC3311] focus:border-transparent"
+          />
+          {config.delivery_date && (
+            <button
+              type="button"
+              onClick={() => setConfig(c => ({ ...c, delivery_date: null }))}
+              className="text-xs font-mono text-zinc-400 hover:text-zinc-600 transition-colors"
+            >
+              ✕ Borrar fecha
+            </button>
+          )}
+        </div>
+
+        {/* Franjas horarias */}
+        <div className="space-y-3">
+          <p className="text-xs font-mono text-zinc-600">Franjas horarias disponibles</p>
+
+          <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-zinc-200">
+            <div>
+              <p className="text-sm font-medium text-zinc-800">Mañana</p>
+              <p className="text-xs font-mono text-zinc-500">10:00 – 13:00</p>
+            </div>
+            <Toggle
+              checked={config.morning_available}
+              onChange={() => setConfig(c => ({ ...c, morning_available: !c.morning_available }))}
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-zinc-200">
+            <div>
+              <p className="text-sm font-medium text-zinc-800">Tarde</p>
+              <p className="text-xs font-mono text-zinc-500">15:00 – 19:00</p>
+            </div>
+            <Toggle
+              checked={config.afternoon_available}
+              onChange={() => setConfig(c => ({ ...c, afternoon_available: !c.afternoon_available }))}
+            />
+          </div>
+        </div>
+
+        {/* Vista previa */}
+        <div className="bg-zinc-50 rounded-xl px-4 py-3 space-y-1">
+          <p className="text-xs font-mono text-zinc-400 mb-2">Vista previa para el cliente</p>
+          {previewDate && (config.morning_available || config.afternoon_available) ? (
+            <div className="text-sm space-y-1">
+              <p className="text-zinc-700 font-medium capitalize">{previewDate}</p>
+              {config.morning_available && (
+                <p className="text-zinc-500 font-mono text-xs">Mañana 10:00 – 13:00</p>
+              )}
+              {config.afternoon_available && (
+                <p className="text-zinc-500 font-mono text-xs">Tarde 15:00 – 19:00</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-400 italic">Despacho no disponible por el momento</p>
+          )}
+        </div>
+
+        {/* Guardar */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="px-5 py-2.5 rounded-xl bg-[#CC3311] text-white text-sm font-semibold hover:bg-[#aa2a0d] active:scale-95 transition-all disabled:opacity-60"
+          >
+            {saving ? 'Guardando…' : 'Guardar configuración'}
+          </button>
+          {saveStatus === 'saved' && (
+            <span className="text-sm font-mono text-green-600 flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Guardado
+            </span>
+          )}
+          {saveStatus === 'error' && (
+            <span className="text-sm font-mono text-red-500">Error al guardar</span>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -1397,8 +1585,10 @@ export default function AdminPage() {
       <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4">
         <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-8">
           <div className="mb-6 text-center">
-            <span className="text-3xl">🍅</span>
-            <h1 className="mt-2 text-xl font-bold text-zinc-900">Panel TMT</h1>
+            <div className="flex justify-center">
+              <Image src="/images/logo.png" alt="TMT" width={96} height={64} className="h-14 w-auto" />
+            </div>
+            <h1 className="mt-3 font-display text-xl font-bold text-zinc-900">Panel de administración</h1>
             <p className="text-sm text-zinc-500 mt-1">Ingresa la contraseña para continuar</p>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
