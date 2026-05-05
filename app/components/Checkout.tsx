@@ -3,45 +3,33 @@
 import { useEffect, useState } from 'react'
 import { useCart, CustomerData } from '../context/CartContext'
 import { normalizePhone } from '../lib/phone'
+import { supabase } from '../lib/supabase'
 
-function getNextWednesdays(count: number): { date: string; label: string }[] {
-  const result: { date: string; label: string }[] = []
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  // 0=Dom 1=Lun 2=Mar 3=Mié 4=Jue 5=Vie 6=Sáb
-  const dayOfWeek = today.getDay()
-  let daysUntil = (3 - dayOfWeek + 7) % 7
-  // Si hoy es miércoles, saltar al siguiente
-  if (daysUntil === 0) daysUntil = 7
-
-  for (let i = 0; i < count; i++) {
-    const d = new Date(today)
-    d.setDate(today.getDate() + daysUntil + i * 7)
-    const iso = d.toISOString().slice(0, 10)
-    const label = d.toLocaleDateString('es-CL', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-    })
-    // Capitalize first letter
-    result.push({ date: iso, label: label.charAt(0).toUpperCase() + label.slice(1) })
-  }
-  return result
+type DeliveryConfig = {
+  delivery_date: string | null
+  morning_available: boolean
+  afternoon_available: boolean
 }
 
-const TIME_OPTIONS = [
-  { value: 'morning', label: 'Mañana  10:00 – 13:00' },
-  { value: 'afternoon', label: 'Tarde  15:00 – 19:00' },
-] as const
+type Errors = Partial<Record<'name' | 'phone' | 'address' | 'time', string>>
 
-type Errors = Partial<Record<'name' | 'phone' | 'address' | 'date' | 'time', string>>
+function formatDeliveryLabel(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const label = new Date(y, m - 1, d).toLocaleDateString('es-CL', {
+    weekday: 'long', day: 'numeric', month: 'long',
+  })
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
 
 export default function Checkout() {
-  const { checkoutOpen, setCheckoutOpen, setConfirmationOpen, setCustomerData, setPrefillCustomer, prefillCustomer, items } = useCart()
+  const {
+    checkoutOpen, setCheckoutOpen,
+    setConfirmationOpen, setCustomerData,
+    setPrefillCustomer, prefillCustomer,
+    items,
+  } = useCart()
 
-  const wednesdays = getNextWednesdays(3)
-
+  const [deliveryConfig, setDeliveryConfig] = useState<DeliveryConfig | null | 'loading'>('loading')
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -52,6 +40,27 @@ export default function Checkout() {
   })
   const [errors, setErrors] = useState<Errors>({})
 
+  // Fetch config fresh each time checkout opens
+  useEffect(() => {
+    if (!checkoutOpen) return
+    setDeliveryConfig('loading')
+    supabase
+      .from('delivery_config')
+      .select('delivery_date, morning_available, afternoon_available')
+      .eq('id', 1)
+      .maybeSingle()
+      .then(({ data }) => {
+        const cfg = (data as DeliveryConfig | null) ?? null
+        setDeliveryConfig(cfg)
+        if (cfg?.delivery_date) {
+          setForm(f => ({ ...f, date: cfg.delivery_date!, dateLabel: formatDeliveryLabel(cfg.delivery_date!) }))
+        } else {
+          setForm(f => ({ ...f, date: '', dateLabel: '' }))
+        }
+      })
+  }, [checkoutOpen])
+
+  // Pre-fill from order history reorder
   useEffect(() => {
     if (!prefillCustomer) return
     setForm(f => ({ ...f, name: prefillCustomer.name, phone: prefillCustomer.phone, address: prefillCustomer.address }))
@@ -60,12 +69,23 @@ export default function Checkout() {
 
   if (!checkoutOpen) return null
 
+  const config = deliveryConfig !== 'loading' ? deliveryConfig : null
+  const availableSlots: { value: 'morning' | 'afternoon'; label: string }[] = config
+    ? [
+        ...(config.morning_available ? [{ value: 'morning' as const, label: 'Mañana  10:00 – 13:00' }] : []),
+        ...(config.afternoon_available ? [{ value: 'afternoon' as const, label: 'Tarde  15:00 – 19:00' }] : []),
+      ]
+    : []
+  const deliveryAvailable =
+    config !== null &&
+    Boolean(config.delivery_date) &&
+    availableSlots.length > 0
+
   function validate(): boolean {
     const e: Errors = {}
     if (!form.name.trim()) e.name = 'Ingresa tu nombre completo'
     if (!form.phone.trim()) e.phone = 'Ingresa tu teléfono'
     if (!form.address.trim()) e.address = 'Ingresa la dirección de entrega'
-    if (!form.date) e.date = 'Selecciona una fecha'
     if (!form.time) e.time = 'Selecciona un horario'
     setErrors(e)
     return Object.keys(e).length === 0
@@ -88,12 +108,14 @@ export default function Checkout() {
     setConfirmationOpen(true)
   }
 
-  function selectDate(iso: string, label: string) {
-    setForm((f) => ({ ...f, date: iso, dateLabel: label }))
-    setErrors((e) => ({ ...e, date: undefined }))
-  }
-
-  function field(id: keyof Errors, value: string, onChange: (v: string) => void, label: string, type = 'text', placeholder = '') {
+  function field(
+    id: keyof Errors,
+    value: string,
+    onChange: (v: string) => void,
+    label: string,
+    type = 'text',
+    placeholder = '',
+  ) {
     return (
       <div>
         <label htmlFor={id} className="block text-sm font-medium text-zinc-700 mb-1">
@@ -104,9 +126,9 @@ export default function Checkout() {
           type={type}
           value={value}
           placeholder={placeholder}
-          onChange={(e) => {
+          onChange={e => {
             onChange(e.target.value)
-            setErrors((prev) => ({ ...prev, [id]: undefined }))
+            setErrors(prev => ({ ...prev, [id]: undefined }))
           }}
           className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none transition-colors ${
             errors[id]
@@ -145,57 +167,60 @@ export default function Checkout() {
             {items.length} producto{items.length !== 1 ? 's' : ''} en tu pedido
           </div>
 
-          {/* Campos */}
-          {field('name', form.name, (v) => setForm((f) => ({ ...f, name: v })), 'Nombre completo', 'text', 'María González')}
-          {field('phone', form.phone, (v) => setForm((f) => ({ ...f, phone: v })), 'Teléfono', 'tel', '+56 9 1234 5678')}
-          {field('address', form.address, (v) => setForm((f) => ({ ...f, address: v })), 'Dirección de entrega', 'text', 'Calle Ejemplo 123, Santiago')}
+          {/* Campos de cliente */}
+          {field('name', form.name, v => setForm(f => ({ ...f, name: v })), 'Nombre completo', 'text', 'María González')}
+          {field('phone', form.phone, v => setForm(f => ({ ...f, phone: v })), 'Teléfono', 'tel', '+56 9 1234 5678')}
+          {field('address', form.address, v => setForm(f => ({ ...f, address: v })), 'Dirección de entrega', 'text', 'Calle Ejemplo 123, Santiago')}
 
-          {/* Fecha */}
-          <div>
-            <p className="block text-sm font-medium text-zinc-700 mb-2">Fecha de entrega</p>
-            <div className="space-y-2">
-              {wednesdays.map(({ date, label }) => (
-                <button
-                  key={date}
-                  type="button"
-                  onClick={() => selectDate(date, label)}
-                  className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-colors ${
-                    form.date === date
-                      ? 'border-[#CC3311] bg-red-50 text-[#CC3311] font-medium'
-                      : 'border-zinc-200 text-zinc-700 hover:border-zinc-400'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+          {/* Fecha y horario — dinámicos desde delivery_config */}
+          {deliveryConfig === 'loading' ? (
+            <div className="flex justify-center py-4">
+              <div className="h-5 w-5 rounded-full border-2 border-zinc-300 border-t-[#CC3311] animate-spin" />
             </div>
-            {errors.date && <p className="mt-1 text-xs text-red-500">{errors.date}</p>}
-          </div>
+          ) : !deliveryAvailable ? (
+            <div className="bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-4 text-center space-y-1">
+              <p className="text-sm font-medium text-zinc-700">Despacho no disponible por el momento</p>
+              <p className="text-xs text-zinc-400">Por favor contáctanos por WhatsApp</p>
+            </div>
+          ) : (
+            <>
+              {/* Fecha (no editable, controlada por admin) */}
+              <div>
+                <p className="block text-sm font-medium text-zinc-700 mb-2">Fecha de entrega</p>
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-[#CC3311] bg-red-50 text-sm text-[#CC3311] font-medium">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="capitalize">{form.dateLabel}</span>
+                </div>
+              </div>
 
-          {/* Horario */}
-          <div>
-            <p className="block text-sm font-medium text-zinc-700 mb-2">Horario de entrega</p>
-            <div className="grid grid-cols-2 gap-2">
-              {TIME_OPTIONS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => {
-                    setForm((f) => ({ ...f, time: value }))
-                    setErrors((e) => ({ ...e, time: undefined }))
-                  }}
-                  className={`px-3 py-3 rounded-xl border text-sm text-center transition-colors leading-snug ${
-                    form.time === value
-                      ? 'border-[#CC3311] bg-red-50 text-[#CC3311] font-medium'
-                      : 'border-zinc-200 text-zinc-700 hover:border-zinc-400'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {errors.time && <p className="mt-1 text-xs text-red-500">{errors.time}</p>}
-          </div>
+              {/* Horario — solo franjas habilitadas */}
+              <div>
+                <p className="block text-sm font-medium text-zinc-700 mb-2">Horario de entrega</p>
+                <div className={`grid gap-2 ${availableSlots.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                  {availableSlots.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => {
+                        setForm(f => ({ ...f, time: value }))
+                        setErrors(e => ({ ...e, time: undefined }))
+                      }}
+                      className={`px-3 py-3 rounded-xl border text-sm text-center transition-colors leading-snug ${
+                        form.time === value
+                          ? 'border-[#CC3311] bg-red-50 text-[#CC3311] font-medium'
+                          : 'border-zinc-200 text-zinc-700 hover:border-zinc-400'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {errors.time && <p className="mt-1 text-xs text-red-500">{errors.time}</p>}
+              </div>
+            </>
+          )}
 
           {/* Botones */}
           <div className="flex gap-3 pt-1">
@@ -208,7 +233,8 @@ export default function Checkout() {
             </button>
             <button
               type="submit"
-              className="flex-1 py-3 rounded-xl bg-[#CC3311] text-white text-sm font-semibold hover:bg-[#aa2a0d] active:scale-95 transition-all"
+              disabled={!deliveryAvailable || deliveryConfig === 'loading'}
+              className="flex-1 py-3 rounded-xl bg-[#CC3311] text-white text-sm font-semibold hover:bg-[#aa2a0d] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Revisar pedido
             </button>
